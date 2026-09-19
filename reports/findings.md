@@ -736,9 +736,18 @@ EL von 11,83 % auf 8,80 % bei 20,1 % weniger Volumen" ist mit berechneten Zahlen
 - **LGD im Excel-Rechner als proportionaler Faktor** (EL x LGD / 0,622). Exakt, weil im Modell eine LGD
   für alle Kredite gilt.
 
+**Reproduktion aus einem frischen Clone geprüft:** Das Repo wurde in ein leeres Verzeichnis geklont,
+nur die Rohdatei nach `data/raw/` gelegt, und alle acht Skripte liefen in der README-Reihenfolge ohne
+Fehler durch. `reports/cutoff_summary.csv` (Kernzahl) war byte-identisch, die Scorecard-Punkte
+identisch (Koeffizienten bis auf 1e-15 gleich). Einziger Unterschied: Die Gradient-Boosting-Kennzahlen
+schwanken in der dritten Nachkommastelle (AUC Train 0,722 gegen 0,724, Test 0,6964 in beiden Läufen),
+weil HistGradientBoosting mehrere Threads nutzt und dadurch nicht bitgenau reproduzierbar ist. Das
+betrifft nur den Benchmark, nicht die Scorecard, den EL oder den Cutoff.
+
 ### Abnahmekriterium AP8
 
-Teilweise erfüllt. Erfüllt: Repo läuft reproduzierbar (Reihenfolge im README und im Walkthrough),
+Teilweise erfüllt. Erfüllt: Repo läuft reproduzierbar (Reihenfolge im README und im Walkthrough, aus
+frischem Clone geprüft),
 Kernzahl im README, Story mit echten Zahlen. Nicht erfüllt, weil außerhalb dieser Umsetzung: Die
 Dashboard-Screenshots fehlen, bis das Dashboard in Power BI gebaut ist (Platzhalter im README), und
 der Excel-Rechner ist als Spezifikation geliefert, nicht als Datei.

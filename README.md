@@ -148,7 +148,7 @@ Voraussetzung: Python 3.11 oder neuer, Git, ca. 5 GB freier Plattenplatz.
     ```
 11. Dashboard in Power BI nach `03_dashboard/layout.md` mit den Measures aus `03_dashboard/measures.dax` bauen; Excel-Rechner nach `04_excel/calculator_spec.md` auf `04_excel/score_bands.csv` bauen.
 
-Gesamtlaufzeit der Skripte auf einem Laptop: rund 5 Minuten, davon 2 Minuten für das einmalige Laden der Rohdatei.
+Gesamtlaufzeit der Skripte auf einem Laptop: rund 5 Minuten, davon 2 Minuten für das einmalige Laden der Rohdatei. Die Reihenfolge wurde aus einem frischen Clone geprüft: Kernzahl und Scorecard sind identisch reproduzierbar, nur die Gradient-Boosting-Kennzahlen (Benchmark) schwanken durch Multithreading in der dritten Nachkommastelle.
 
 ## Abnahmekriterien je Arbeitspaket
 
