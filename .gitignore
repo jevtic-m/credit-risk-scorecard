@@ -19,3 +19,7 @@ Thumbs.db
 # Power-BI-Export (190 MB, eine Zeile je Kredit): zu gross fuer Git,
 # wird von 02_python/07_dashboard_export.py in Sekunden neu erzeugt
 03_dashboard/scored_portfolio.csv
+
+# Lokale Arbeitsnotizen im Root (Markdown), nur das README wird getrackt
+/*.md
+!/README.md
