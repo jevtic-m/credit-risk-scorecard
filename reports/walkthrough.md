@@ -112,3 +112,18 @@ Ergebnisdateien im Repo:
 
 Ergebnisdateien nicht im Repo:
 - `data/processed/portfolio_el.parquet`: alle Kredite mit Score, PD, LGD, EAD, EL (Grundlage fuer AP7 und AP8)
+
+## AP7: Cutoff-Analyse
+
+Ausfuehren: `.venv/Scripts/python.exe 02_python/06_cutoff_analysis.py` (wenige Sekunden)
+
+| Reihenfolge | Datei | Was passiert |
+|---|---|---|
+| 1 | `02_python/06_cutoff_analysis.py` | Liest `portfolio_el.parquet`. Rechnet je Cutoff (5-Punkte-Schritte) Annahmequote, Volumen, Ausfallquote, EL und abgelehntes gutes Geschaeft, fuer Testportfolio und Gesamtportfolio. Waehlt den Referenz-Cutoff ueber den Knick der Kurve (max. 50 % Volumenverlust), rechnet die LGD-Sensitivitaet und schreibt die Score-Baender fuer Excel. |
+
+Ergebnisdateien im Repo:
+- `reports/cutoff_table.csv`: eine Zeile je Cutoff und Portfolio
+- `reports/cutoff_summary.csv`: Referenz-Cutoff mit allen Kennzahlen und Sensitivitaeten
+- `reports/figures/cutoff_tradeoff_test.png`, `cutoff_curve_test.png` (und `_full.png`)
+- `04_excel/score_bands.csv`: Score-Baender (10 Punkte) des Testportfolios fuer den Excel-Rechner
+- `04_excel/score_bands_full_portfolio.csv`: dasselbe fuer das Gesamtportfolio

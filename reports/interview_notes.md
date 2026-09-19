@@ -207,3 +207,36 @@ Vermutung, dass ab mehr als 30 Tagen Zahlungsverzug ein SICR vorliegt. Ab Stage 
 12-Monats-ECL die Lifetime-ECL gebucht. Stage 3 ist der Ausfall selbst, dann wird der Zins nur noch auf
 Nettobasis vereinnahmt. Im Lending-Club-Datensatz wären die Status "Late (31-120 days)" typische
 Stage-2-Kandidaten, "Charged Off" ist Stage 3.
+
+---
+
+## Nach AP7 (Cutoff)
+
+**Wie würdest du den optimalen Cutoff bestimmen, wenn du die Marge kennst?**
+
+Über den Break-even je Kredit: Ein Kredit lohnt sich, wenn die erwartete Marge größer ist als der
+erwartete Verlust, also Marge > PD x LGD (beides in Prozent des Betrags). Bei LGD 62,2 % und einer
+Marge von zum Beispiel 8 % über die Laufzeit ist die Grenz-PD 8 % / 0,622 = 12,9 %. Daraus folgt der
+Cutoff direkt aus der Scorecard: PD 12,9 % entspricht Odds 6,8 und damit Score 487 + 28,85 x ln(6,8) =
+542. Mit bekannter Marge kann ich den Cutoff also je Kredit begründen, statt den Knick der Kurve zu
+nehmen. Mein Knick bei 515 ist deutlich lockerer, weil er nur den Verlauf der Verlustkurve nutzt, nicht
+den Ertrag.
+
+**Was kostet ein zu konservativer Cutoff?**
+
+Volumen und gute Kunden. Bei Cutoff 540 statt 515 fällt die Annahmequote im Testportfolio von 84,5 %
+auf 46,1 %, das genehmigte Volumen sinkt um 58 % statt 20 %, und man lehnt 48 % der Kredite ab, die
+vollständig zurückgezahlt worden wären. Der EL des angenommenen Portfolios sinkt zwar von 8,80 % auf
+5,51 %, aber die Zinseinnahmen der 38 Prozentpunkte zusätzlich abgelehnten Kredite fehlen komplett.
+Ein zu strenger Cutoff ist also kein "sicher", sondern eine Entscheidung gegen Ertrag, und die Kurve
+zeigt, dass jeder weitere Prozentpunkt EL-Senkung oberhalb von 515 überproportional Volumen kostet.
+
+**Wie würde sich die Empfehlung ändern, wenn die LGD bei 60 % statt 40 % läge?**
+
+Der EL jedes Kredits wäre um die Hälfte höher (Faktor 60/40 = 1,5). Weil ich eine LGD für alle
+Kredite verwende, ändert das die Form der Kurve nicht, nur ihr Niveau: Der Knick bleibt bei 515, aber
+jeder gesparte Prozentpunkt Volumen ist 1,5-mal so viel wert. In meiner Sensitivität steigt der am
+Cutoff 515 gesparte EL von 174 Mio. USD (LGD 30 %) auf 348 Mio. USD (LGD 60 %). Mit dem
+Break-even-Argument aus der ersten Frage würde der Cutoff bei höherer LGD strenger: Die Grenz-PD ist
+Marge / LGD, sie sinkt von 20 % (Marge 8 %, LGD 40 %) auf 13,3 % (LGD 60 %). Höhere Verlustquote
+heißt also weniger Spielraum bei der Annahme.

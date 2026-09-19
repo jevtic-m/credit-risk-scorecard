@@ -612,3 +612,88 @@ US-Konsumentenkredite sind höher, was plausibel ist (keine Sicherheiten, keine 
 Erfüllt. Portfolio-EL steht als Zahl (887 Mio. USD im Testportfolio, 2.353 Mio. USD gesamt) und als
 Prozentsatz (11,83 % bzw. 12,12 % des Volumens), die LGD-Herleitung mit Formel, Verteilung und
 Segmenten ist dokumentiert, die Sensitivität ist gerechnet.
+
+---
+
+## AP7: Cutoff-Analyse
+
+### Was wurde gemacht
+
+1. Für jeden Cutoff in 5-Punkte-Schritten (450 bis 615): Kredite mit Score >= Cutoff werden angenommen.
+   Je Cutoff: Annahmequote, genehmigtes Volumen, verlorenes Volumen, beobachtete Ausfallquote und
+   mittlere PD des angenommenen Portfolios, EL absolut und in Prozent, Senkung der EL-Rate, Anteil
+   abgelehnter guter und schlechter Kredite.
+2. Gerechnet für das zeitlich getrennte Testportfolio (2016–2018, Hauptergebnis) und das Gesamtportfolio.
+3. Referenz-Cutoff über den Knick der Trade-off-Kurve (EL-Senkung gegen verlorenes Volumen, bis
+   höchstens 50 % Volumenverlust).
+4. Sensitivität am Referenz-Cutoff mit LGD 30 % / 62,2 % / 60 %.
+5. Score-Bänder (10 Punkte breit) für den Excel-Rechner nach `04_excel/score_bands.csv`.
+
+### Was kam heraus
+
+**Trade-off-Tabelle Testportfolio (`reports/cutoff_table.csv`, Auszug):**
+
+| Cutoff | Annahmequote | Volumen verloren | Ausfallquote angenommen | EL-Rate | EL-Rate-Senkung | abgelehnte Gute | abgelehnte Ausfälle |
+|---|---|---|---|---|---|---|---|
+| kein (450) | 100,0 % | 0,0 % | 22,42 % | 11,83 % | 0 % | 0 % | 0 % |
+| 490 | 98,1 % | 2,6 % | 21,72 % | 11,24 % | 5,0 % | 1,1 % | 5,0 % |
+| 500 | 94,6 % | 7,3 % | 20,79 % | 10,44 % | 11,7 % | 3,4 % | 12,3 % |
+| 510 | 88,7 % | 15,0 % | 19,51 % | 9,39 % | 20,6 % | 7,9 % | 22,8 % |
+| **515 (Referenz)** | **84,5 %** | **20,1 %** | **18,70 %** | **8,80 %** | **25,6 %** | **11,4 %** | **29,5 %** |
+| 520 | 79,2 % | 26,2 % | 17,76 % | 8,18 % | 30,9 % | 16,1 % | 37,3 % |
+| 530 | 64,5 % | 41,0 % | 15,39 % | 6,86 % | 42,1 % | 29,6 % | 55,7 % |
+| 540 | 46,1 % | 58,0 % | 12,52 % | 5,51 % | 53,4 % | 48,0 % | 74,2 % |
+| 550 | 28,4 % | 73,8 % | 9,59 % | 4,28 % | 63,8 % | 66,9 % | 87,9 % |
+
+**Der Satz fürs README (Testportfolio, 7,50 Mrd. USD):**
+
+> Ein Cutoff bei Score 515 senkt den Expected Loss von 11,83 % auf 8,80 % des Portfoliovolumens
+> (minus 25,6 %) und kostet 20,1 % des genehmigten Volumens (Annahmequote 84,5 %).
+
+Absolut: EL sinkt von 887 Mio. USD auf 527 Mio. USD, also 360 Mio. USD weniger erwarteter Verlust bei
+1,51 Mrd. USD weniger Neugeschäft. Die abgelehnten 15,5 % der Kredite enthalten 29,5 % der späteren
+Ausfälle, aber auch 11,4 % der Kredite, die vollständig zurückgezahlt worden wären. Die Ausfallquote
+der abgelehnten Kredite liegt bei 42,7 %, die des angenommenen Portfolios sinkt von 22,4 % auf 18,7 %.
+
+**Gesamtportfolio zur Kontrolle:** Knick bei 510, EL-Rate von 12,12 % auf 9,44 % (minus 22,1 %) bei
+16,4 % weniger Volumen. Die Empfehlung hängt also kaum davon ab, welches Portfolio man betrachtet;
+515 im Test und 510 gesamt liegen einen Schritt auseinander.
+
+**Sensitivität am Cutoff 515 (Testportfolio):**
+
+| LGD | EL-Rate ohne Cutoff | EL-Rate mit Cutoff 515 | gesparter EL |
+|---|---|---|---|
+| 30 % | 5,71 % | 4,24 % | 174 Mio. USD |
+| 62,2 % (empirisch) | 11,83 % | 8,80 % | 360 Mio. USD |
+| 60 % | 11,41 % | 8,49 % | 348 Mio. USD |
+
+Weil die LGD als eine Zahl für alle Kredite gilt, verschiebt sie das Niveau des EL, nicht die Form
+der Kurve. Der Knick bleibt bei 515, nur der Wert jedes gesparten Prozentpunkts ändert sich: Bei LGD
+60 % ist der Cutoff doppelt so viel wert wie bei 30 %, das Argument für einen strengeren Cutoff wird
+also stärker, wenn die Verwertung schlechter ist.
+
+**Charts:** `reports/figures/cutoff_tradeoff_test.png` (EL-Rate und Annahmequote gegen Cutoff),
+`cutoff_curve_test.png` (EL-Senkung gegen verlorenes Volumen mit markiertem Knick), jeweils auch
+`_full.png` für das Gesamtportfolio.
+
+### Warum so entschieden
+
+- **Testportfolio als Hauptergebnis.** Dort sind die PDs echte Vorhersagen für Kredite, die das Modell
+  nie gesehen hat. Das Gesamtportfolio wird zur Kontrolle mitgerechnet und kommt auf fast denselben
+  Cutoff.
+- **Referenz-Cutoff über den Knick der Kurve.** Der Knick ist der Punkt mit dem größten Abstand zur
+  Geraden zwischen "kein Cutoff" und "50 % Volumen verloren". Bis dahin bringt jeder Prozentpunkt
+  verlorenes Volumen viel EL-Senkung, danach wird es teuer. Das ist eine einfache, nachvollziehbare
+  Regel, kein Optimum im strengen Sinn. Mit bekannter Zinsmarge würde man stattdessen den Break-even
+  rechnen: Ablehnen, sobald PD x LGD die erwartete Marge übersteigt (siehe Interview-Notizen AP7).
+- **Grenze 50 % Volumenverlust** für die Knick-Suche, weil der Knick sonst davon abhängt, wie weit
+  man die Kurve zeichnet, und keine Bank ihr Geschäft halbiert.
+- **5-Punkte-Schritte** als Kompromiss zwischen Auflösung und Lesbarkeit; im Score-Bereich 500 bis 530
+  entscheidet jeder Schritt über rund 4 Prozentpunkte Annahmequote.
+- **Score-Bänder 10 Punkte breit** für den Excel-Rechner: 17 Zeilen statt 160, damit die
+  Formeln in Excel übersichtlich bleiben.
+
+### Abnahmekriterium AP7
+
+Erfüllt. Die Trade-off-Tabelle liegt in `reports/cutoff_table.csv`, und der Satz "Cutoff bei 515 senkt
+EL von 11,83 % auf 8,80 % bei 20,1 % weniger Volumen" ist mit berechneten Zahlen gefüllt.

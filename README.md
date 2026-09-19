@@ -2,7 +2,7 @@
 
 **Business-Frage:** Wo sollte eine Bank ihren Annahme-Cutoff setzen?
 
-**Kernergebnis:** Ein Cutoff bei Score [X] senkt den Expected Loss von [A] % auf [B] % des Portfoliovolumens und kostet [Z] % des genehmigten Volumens.
+**Kernergebnis:** Ein Cutoff bei Score 515 senkt den Expected Loss von 11,83 % auf 8,80 % des Portfoliovolumens (minus 25,6 %) und kostet 20,1 % des genehmigten Volumens. Gerechnet auf 518.744 zeitlich getrennten Testkrediten (2016–2018, 7,5 Mrd. USD), Scorecard ohne Lending Clubs eigene Risikoeinstufung, AUC 0,688.
 
 **Stack:** DuckDB (SQL) · Python (optbinning, scikit-learn) · Power BI · Excel
 
@@ -57,7 +57,19 @@ Kalibrierung: Im ausgereiften Training trifft die mittlere PD die Ausfallquote e
 
 **AP6 – Expected Loss:** LGD empirisch aus 269.360 ausgefallenen Krediten: Mittelwert 62,2 %, Median 66,4 % (36 Monate 57,3 %, 60 Monate 69,9 %, Grade A 52,3 % bis G 75,4 %). EAD = ausgezahlter Betrag. Lifetime-EL des zeitlich getrennten Testportfolios (2016–2018, 7,50 Mrd. USD): 887 Mio. USD oder 11,83 % des Volumens; Gesamtportfolio 2.353 Mio. USD oder 12,12 %. Backtest auf dem ausgereiften Training: Modell-EL 12,30 % gegen realisierten Verlust 11,61 %, das Modell ist leicht konservativ. Sensitivität: mit LGD 30 % sinkt der EL auf 5,71 %, mit 60 % auf 11,41 %.
 
-[Weitere Ergebnisse folgen mit AP7 bis AP8.]
+**AP7 – Cutoff-Analyse (Testportfolio 2016–2018):**
+
+| Cutoff | Annahmequote | Volumen verloren | EL-Rate | EL-Senkung | abgelehnte Gute | abgelehnte Ausfälle |
+|---|---|---|---|---|---|---|
+| kein | 100,0 % | 0 % | 11,83 % | 0 % | 0 % | 0 % |
+| 500 | 94,6 % | 7,3 % | 10,44 % | 11,7 % | 3,4 % | 12,3 % |
+| **515** | **84,5 %** | **20,1 %** | **8,80 %** | **25,6 %** | **11,4 %** | **29,5 %** |
+| 530 | 64,5 % | 41,0 % | 6,86 % | 42,1 % | 29,6 % | 55,7 % |
+| 550 | 28,4 % | 73,8 % | 4,28 % | 63,8 % | 66,9 % | 87,9 % |
+
+Der Referenz-Cutoff 515 ist der Knick der Trade-off-Kurve: Bis dahin bringt jeder Prozentpunkt verlorenes Volumen viel EL-Senkung, danach wird es teuer. Absolut sinkt der EL von 887 auf 527 Mio. USD (360 Mio. USD weniger) bei 1,51 Mrd. USD weniger Neugeschäft. Auf dem Gesamtportfolio liegt der Knick bei 510. Mit LGD 60 % statt 30 % ist der Cutoff doppelt so viel wert (348 statt 174 Mio. USD gesparter EL), die Form der Kurve ändert sich nicht. Vollständige Tabelle in `reports/cutoff_table.csv`, Charts `reports/figures/cutoff_curve_test.png` und `cutoff_tradeoff_test.png`.
+
+[Weitere Ergebnisse folgen mit AP8.]
 
 ## Annahmen und Limitationen
 
@@ -113,4 +125,9 @@ Voraussetzung: Python 3.11 oder neuer, Git, ca. 5 GB freier Plattenplatz.
    .venv/Scripts/python.exe 02_python/05_expected_loss.py
    ```
 
-[Weitere Schritte folgen mit AP7 bis AP8.]
+9. AP7 – Cutoff-Analyse (schreibt `reports/cutoff_table.csv`, `cutoff_summary.csv`, `04_excel/score_bands.csv`, Charts):
+   ```bash
+   .venv/Scripts/python.exe 02_python/06_cutoff_analysis.py
+   ```
+
+[Weitere Schritte folgen mit AP8.]
