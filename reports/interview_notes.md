@@ -240,3 +240,33 @@ Cutoff 515 gesparte EL von 174 Mio. USD (LGD 30 %) auf 348 Mio. USD (LGD 60 %). 
 Break-even-Argument aus der ersten Frage würde der Cutoff bei höherer LGD strenger: Die Grenz-PD ist
 Marge / LGD, sie sinkt von 20 % (Marge 8 %, LGD 40 %) auf 13,3 % (LGD 60 %). Höhere Verlustquote
 heißt also weniger Spielraum bei der Annahme.
+
+---
+
+## Die 90-Sekunden-Story (mit den echten Zahlen dieses Repos)
+
+> Banken müssen bei jedem Kredit entscheiden: annehmen oder ablehnen. Zu streng heißt Geschäft
+> verlieren, zu locker heißt Verluste. Ich habe diese Entscheidung mit Daten unterlegt.
+>
+> Grundlage waren 2,26 Millionen echte US-Konsumentenkredite von Lending Club, davon 1,35 Millionen
+> mit bekanntem Ausgang. Erster Schritt war Datenhygiene: Der Datensatz enthält 38 Spalten, die erst
+> nach der Kreditvergabe entstehen, Rückzahlungen, Verwertungserlöse, Härtefallprogramme. Wer die
+> einbaut, bekommt ein Modell, das im Test brilliert und in der Praxis wertlos ist. Die habe ich als
+> explizite Liste im Code entfernt.
+>
+> Dann habe ich in SQL die Ausfallmuster analysiert, Vintage-Kurven pro Jahrgang gebaut, inklusive
+> Reifegrad, weil junge Jahrgänge noch nicht ausgelaufen sind, und in Python eine klassische Scorecard
+> mit Weight-of-Evidence-Binning und logistischer Regression trainiert. Zeitlich getrennt getestet,
+> Training bis 2015, Test 2016 bis 2018. Gini 0,38, AUC 0,69, ohne Lending Clubs eigene Einstufung, die
+> im Vergleich nur 0,017 AUC mehr bringt. Die PD ist auf dem ausgereiften Portfolio sauber kalibriert,
+> und das ist hier wichtiger als reine Trennschärfe, weil sie direkt in die Verlustrechnung eingeht.
+>
+> Daraus habe ich den Expected Loss gerechnet, mit einer LGD von 62 %, die ich aus den tatsächlichen
+> Rückflüssen von 269.000 ausgefallenen Krediten geschätzt statt geraten habe.
+>
+> Das Ergebnis ist ein Dashboard mit einem Cutoff-Regler: Ein Cutoff bei Score 515 senkt den erwarteten
+> Verlust von 11,8 auf 8,8 Prozent des Volumens, also um ein Viertel, und kostet 20 Prozent des
+> Neugeschäfts. Damit kann jemand ohne Statistikkenntnisse die Entscheidung selbst durchspielen.
+>
+> Gelernt habe ich vor allem, dass das Schwierigste an so einem Projekt nicht das Modell ist, sondern
+> zu wissen, welche Information zum Entscheidungszeitpunkt überhaupt zur Verfügung stand.

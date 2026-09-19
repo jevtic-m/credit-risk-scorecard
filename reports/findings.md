@@ -697,3 +697,48 @@ also stärker, wenn die Verwertung schlechter ist.
 
 Erfüllt. Die Trade-off-Tabelle liegt in `reports/cutoff_table.csv`, und der Satz "Cutoff bei 515 senkt
 EL von 11,83 % auf 8,80 % bei 20,1 % weniger Volumen" ist mit berechneten Zahlen gefüllt.
+
+---
+
+## AP8: Dashboard-Vorbereitung, Excel-Rechner, README
+
+### Was wurde gemacht
+
+1. `02_python/07_dashboard_export.py` schreibt `03_dashboard/scored_portfolio.csv`: 1.348.099 Zeilen,
+   20 Spalten (Kreditmerkmale, Klassen für Einkommen/DTI/FICO, Jahr, Quartal, Reifegrad-Flag, sample,
+   Score, PD, LGD, EL). Dazu `model_quality.csv` und die sechs Charts für Seite 3.
+2. `03_dashboard/measures.dax`: alle Measures für die vier Dashboard-Seiten, What-if-Parameter für den
+   Cutoff-Regler (450 bis 620, Standard 515) und optional für die LGD.
+3. `03_dashboard/layout.md`: Visuals, Felder und Kontrollwerte je Seite.
+4. `04_excel/calculator_spec.md`: Aufbau des Excel-Rechners auf `score_bands.csv` mit allen Formeln.
+5. README mit allen Zahlen, Reproduktionsschritten und Abnahmekriterien; Walkthrough vervollständigt;
+   90-Sekunden-Story mit echten Zahlen in `reports/interview_notes.md`.
+
+### Was kam heraus
+
+- Der Export reproduziert die Kernzahl: Im Testportfolio bei Cutoff 515 EL-Rate 8,80 % (ohne 11,83 %),
+  Annahmequote 84,5 %. Das Skript prüft das automatisch beim Schreiben.
+- `scored_portfolio.csv` ist 190 MB groß und deshalb nicht im Repo (`.gitignore`). Sie entsteht aus
+  einem frischen Clone in Sekunden, sobald AP1 bis AP7 gelaufen sind.
+- Die Excel-Formeln wurden gegen `reports/cutoff_table.csv` geprüft: Cutoff 510 ergibt 6,38 Mrd. USD
+  genehmigtes Volumen und 9,39 % Verlustquote, Cutoff 520 ergibt 5,54 Mrd. USD und 8,18 %.
+
+### Warum so entschieden
+
+- **Keine .pbix und keine .xlsx im Repo.** Geliefert werden die Daten und
+  die vollständigen Bauanleitungen (Measures, Layout, Formeln), so dass beides in Power BI und Excel
+  von Hand nachgebaut werden kann.
+- **Export mit allen Krediten plus sample-Spalte** statt nur Testportfolio, damit Seite 1 und 2 das ganze
+  Portfolio zeigen und Seite 4 per Slicer auf den zeitlich getrennten Test eingeschränkt werden kann.
+- **Score-Bänder à 10 Punkte** für Excel, weil 17 Zeilen mit SUMMEWENNS übersichtlich bleiben. Der
+  Referenz-Cutoff 515 liegt zwischen zwei Bandgrenzen; in Excel sind deshalb 510 oder 520 wählbar,
+  oder man erzeugt die Bänder mit Breite 5.
+- **LGD im Excel-Rechner als proportionaler Faktor** (EL x LGD / 0,622). Exakt, weil im Modell eine LGD
+  für alle Kredite gilt.
+
+### Abnahmekriterium AP8
+
+Teilweise erfüllt. Erfüllt: Repo läuft reproduzierbar (Reihenfolge im README und im Walkthrough),
+Kernzahl im README, Story mit echten Zahlen. Nicht erfüllt, weil außerhalb dieser Umsetzung: Die
+Dashboard-Screenshots fehlen, bis das Dashboard in Power BI gebaut ist (Platzhalter im README), und
+der Excel-Rechner ist als Spezifikation geliefert, nicht als Datei.

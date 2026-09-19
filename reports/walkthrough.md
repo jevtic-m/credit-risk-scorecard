@@ -127,3 +127,33 @@ Ergebnisdateien im Repo:
 - `reports/figures/cutoff_tradeoff_test.png`, `cutoff_curve_test.png` (und `_full.png`)
 - `04_excel/score_bands.csv`: Score-Baender (10 Punkte) des Testportfolios fuer den Excel-Rechner
 - `04_excel/score_bands_full_portfolio.csv`: dasselbe fuer das Gesamtportfolio
+
+## AP8: Dashboard-Vorbereitung, Excel-Rechner, README
+
+Ausfuehren: `.venv/Scripts/python.exe 02_python/07_dashboard_export.py` (wenige Sekunden)
+
+| Reihenfolge | Datei | Was passiert |
+|---|---|---|
+| 1 | `02_python/07_dashboard_export.py` | Liest `portfolio_el.parquet`, ergaenzt Jahr, Quartal, Reifegrad-Flag und die Klassen fuer Einkommen, DTI und FICO, schreibt `03_dashboard/scored_portfolio.csv` (190 MB, in `.gitignore`), `03_dashboard/model_quality.csv` und kopiert die sechs Charts fuer Seite 3 nach `03_dashboard/figures/`. Prueft zum Schluss, dass die Kernzahl (Cutoff 515) aus dem Export reproduzierbar ist. |
+| 2 | `03_dashboard/measures.dax` | Alle DAX-Measures fuer die vier Seiten, inklusive What-if-Parameter fuer den Cutoff-Regler und optional fuer die LGD. |
+| 3 | `03_dashboard/layout.md` | Seite fuer Seite: welche Visuals, welche Felder und Measures, Kontrollwerte zum Pruefen. |
+| 4 | `04_excel/score_bands.csv` | Aggregierte Score-Verteilung des Testportfolios (17 Baender), Datengrundlage des Excel-Rechners. Erzeugt in AP7. |
+| 5 | `04_excel/calculator_spec.md` | Aufbau des Excel-Rechners: Eingabezellen, alle Formeln (SUMMEWENNS auf die Baender), Vergleich zum Status quo, Kontrollwerte, Optik. |
+
+Nicht im Repo: `credit_risk.pbix` und `policy_calculator.xlsx` werden von Hand nach diesen Vorlagen
+gebaut. Screenshots des fertigen Dashboards kommen nach `03_dashboard/screenshots/`.
+
+## Ausfuehrungsreihenfolge komplett (frischer Clone)
+
+```
+02_python/01_data_prep.py          AP1   Rohdatei -> loans_clean.parquet, lgd_inputs.parquet
+02_python/run_sql.py               AP2   15 SQL-Abfragen
+02_python/02_woe_binning.py        AP3   Split, Binning, IV
+02_python/03_scorecard.py          AP4   Scorecard A und B, scored_loans.parquet
+02_python/04_model_evaluation.py   AP5   Guete, Kalibrierung, Boosting, PSI
+02_python/05_expected_loss.py      AP6   LGD, EL, portfolio_el.parquet
+02_python/06_cutoff_analysis.py    AP7   Cutoff-Tabelle, Referenz-Cutoff, score_bands.csv
+02_python/07_dashboard_export.py   AP8   scored_portfolio.csv fuer Power BI
+```
+
+Jedes Skript liest nur die Ergebnisse der vorherigen Schritte, nie die Rohdatei (Ausnahme: AP1).

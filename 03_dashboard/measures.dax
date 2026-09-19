@@ -1,0 +1,108 @@
+// measures.dax  --  DAX-Measures fuer das Power-BI-Dashboard (Tabelle: portfolio = scored_portfolio.csv)
+//
+// Einrichtung in Power BI Desktop:
+//   1. Daten abrufen > Text/CSV > 03_dashboard/scored_portfolio.csv, Tabelle in "portfolio" umbenennen.
+//      Datentypen pruefen: score, funded_amnt, default = Ganze Zahl; pd, lgd, el = Dezimalzahl.
+//   2. Modellierung > Neuer Parameter > Numerischer Bereich:
+//        Name: CutoffParam, Minimum 450, Maximum 620, Schrittweite 5, Standardwert 515
+//      Das erzeugt die Tabelle 'CutoffParam' mit der Spalte [Cutoff] und den Schieberegler.
+//   3. Die Measures unten einzeln als "Neues Measure" in der Tabelle portfolio anlegen.
+//
+// Hinweis: Alle Measures reagieren auf Slicer (z. B. sample = test, issue_year, grade).
+// Die Kernzahl im README ist mit Slicer sample = "test" und Cutoff 515 reproduzierbar.
+
+
+// ---------- Basis (Seite 1) ----------
+
+Total Loans = COUNTROWS ( portfolio )
+
+Total Volume = SUM ( portfolio[funded_amnt] )
+
+Total EL = SUM ( portfolio[el] )
+
+Default Rate = DIVIDE ( SUM ( portfolio[default] ), COUNTROWS ( portfolio ) )
+
+EL Rate Total = DIVIDE ( [Total EL], [Total Volume] )
+
+Average PD = AVERAGE ( portfolio[pd] )
+
+Average Score = AVERAGE ( portfolio[score] )
+
+
+// ---------- Cutoff-Simulator (Seite 4) ----------
+
+Cutoff = SELECTEDVALUE ( 'CutoffParam'[Cutoff], 515 )
+
+Approved Loans =
+CALCULATE ( COUNTROWS ( portfolio ), FILTER ( portfolio, portfolio[score] >= [Cutoff] ) )
+
+Approval Rate = DIVIDE ( [Approved Loans], [Total Loans] )
+
+Approved Volume =
+CALCULATE ( SUM ( portfolio[funded_amnt] ), FILTER ( portfolio, portfolio[score] >= [Cutoff] ) )
+
+Volume Share Approved = DIVIDE ( [Approved Volume], [Total Volume] )
+
+Volume Lost = [Total Volume] - [Approved Volume]
+
+Volume Lost Share = 1 - [Volume Share Approved]
+
+Approved EL =
+CALCULATE ( SUM ( portfolio[el] ), FILTER ( portfolio, portfolio[score] >= [Cutoff] ) )
+
+EL Rate = DIVIDE ( [Approved EL], [Approved Volume] )
+
+EL Rate Reduction = 1 - DIVIDE ( [EL Rate], [EL Rate Total] )
+
+EL Saved = [Total EL] - [Approved EL]
+
+Approved Bad Rate =
+DIVIDE (
+    CALCULATE ( SUM ( portfolio[default] ), FILTER ( portfolio, portfolio[score] >= [Cutoff] ) ),
+    [Approved Loans]
+)
+
+Rejected Good Share =
+VAR RejectedGood =
+    CALCULATE (
+        COUNTROWS ( portfolio ),
+        FILTER ( portfolio, portfolio[score] < [Cutoff] && portfolio[default] = 0 )
+    )
+VAR TotalGood = CALCULATE ( COUNTROWS ( portfolio ), portfolio[default] = 0 )
+RETURN DIVIDE ( RejectedGood, TotalGood )
+
+Rejected Bad Share =
+VAR RejectedBad =
+    CALCULATE (
+        COUNTROWS ( portfolio ),
+        FILTER ( portfolio, portfolio[score] < [Cutoff] && portfolio[default] = 1 )
+    )
+VAR TotalBad = CALCULATE ( COUNTROWS ( portfolio ), portfolio[default] = 1 )
+RETURN DIVIDE ( RejectedBad, TotalBad )
+
+
+// ---------- Trade-off-Kurve ueber alle Cutoffs (Seite 4, Zwei-Achsen-Diagramm) ----------
+// Diese beiden Measures werden mit 'CutoffParam'[Cutoff] auf der X-Achse verwendet.
+// Sie ignorieren den Schieberegler und rechnen jede Achsenposition einzeln.
+
+EL Rate by Cutoff =
+VAR C = MAX ( 'CutoffParam'[Cutoff] )
+VAR Vol = CALCULATE ( SUM ( portfolio[funded_amnt] ), FILTER ( portfolio, portfolio[score] >= C ) )
+VAR EL  = CALCULATE ( SUM ( portfolio[el] ),          FILTER ( portfolio, portfolio[score] >= C ) )
+RETURN DIVIDE ( EL, Vol )
+
+Approval Rate by Cutoff =
+VAR C = MAX ( 'CutoffParam'[Cutoff] )
+VAR Approved = CALCULATE ( COUNTROWS ( portfolio ), FILTER ( portfolio, portfolio[score] >= C ) )
+RETURN DIVIDE ( Approved, COUNTROWS ( ALL ( portfolio ) ) )
+
+
+// ---------- LGD-Sensitivitaet (optional, Seite 4) ----------
+// Zweiter What-if-Parameter: LgdParam, Minimum 0.30, Maximum 0.70, Schrittweite 0.05, Standard 0.62
+// EL im Export ist mit LGD 0.622 gerechnet; die Umrechnung skaliert proportional.
+
+LGD Assumption = SELECTEDVALUE ( 'LgdParam'[LGD], 0.622 )
+
+Approved EL at LGD = [Approved EL] * DIVIDE ( [LGD Assumption], 0.622 )
+
+EL Rate at LGD = DIVIDE ( [Approved EL at LGD], [Approved Volume] )

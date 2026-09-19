@@ -69,7 +69,19 @@ Kalibrierung: Im ausgereiften Training trifft die mittlere PD die Ausfallquote e
 
 Der Referenz-Cutoff 515 ist der Knick der Trade-off-Kurve: Bis dahin bringt jeder Prozentpunkt verlorenes Volumen viel EL-Senkung, danach wird es teuer. Absolut sinkt der EL von 887 auf 527 Mio. USD (360 Mio. USD weniger) bei 1,51 Mrd. USD weniger Neugeschäft. Auf dem Gesamtportfolio liegt der Knick bei 510. Mit LGD 60 % statt 30 % ist der Cutoff doppelt so viel wert (348 statt 174 Mio. USD gesparter EL), die Form der Kurve ändert sich nicht. Vollständige Tabelle in `reports/cutoff_table.csv`, Charts `reports/figures/cutoff_curve_test.png` und `cutoff_tradeoff_test.png`.
 
-[Weitere Ergebnisse folgen mit AP8.]
+**AP8 – Dashboard und Excel:** `02_python/07_dashboard_export.py` erzeugt `03_dashboard/scored_portfolio.csv` (1.348.099 Kredite, 20 Spalten, 190 MB, nicht im Repo). `03_dashboard/measures.dax` und `layout.md` beschreiben die vier Dashboard-Seiten mit Cutoff-Regler, `04_excel/score_bands.csv` und `calculator_spec.md` den Excel-Policy-Rechner.
+
+### Dashboard-Screenshots
+
+[Screenshot Seite 1: Portfolio-Übersicht – 03_dashboard/screenshots/01_portfolio.png]
+
+[Screenshot Seite 2: Risikotreiber – 03_dashboard/screenshots/02_risikotreiber.png]
+
+[Screenshot Seite 3: Modellgüte – 03_dashboard/screenshots/03_modellguete.png]
+
+[Screenshot Seite 4: Cutoff-Simulator – 03_dashboard/screenshots/04_cutoff_simulator.png]
+
+Bis die Screenshots vorliegen, zeigen die Charts in `reports/figures/` die Ergebnisse: `cutoff_curve_test.png`, `cutoff_tradeoff_test.png`, `roc_curve.png`, `calibration_plot.png`, `score_distribution.png`, `ks_plot.png`, `iv_ranking.png`, `lgd_distribution.png`.
 
 ## Annahmen und Limitationen
 
@@ -130,4 +142,25 @@ Voraussetzung: Python 3.11 oder neuer, Git, ca. 5 GB freier Plattenplatz.
    .venv/Scripts/python.exe 02_python/06_cutoff_analysis.py
    ```
 
-[Weitere Schritte folgen mit AP8.]
+10. AP8 – Export für Power BI (schreibt `03_dashboard/scored_portfolio.csv`, `model_quality.csv`, Charts nach `03_dashboard/figures/`):
+    ```bash
+    .venv/Scripts/python.exe 02_python/07_dashboard_export.py
+    ```
+11. Dashboard in Power BI nach `03_dashboard/layout.md` mit den Measures aus `03_dashboard/measures.dax` bauen; Excel-Rechner nach `04_excel/calculator_spec.md` auf `04_excel/score_bands.csv` bauen.
+
+Gesamtlaufzeit der Skripte auf einem Laptop: rund 5 Minuten, davon 2 Minuten für das einmalige Laden der Rohdatei.
+
+## Abnahmekriterien je Arbeitspaket
+
+| AP | Kriterium | Status |
+|---|---|---|
+| AP1 | Fallzahl nach Filter, Ausfallquote, ausgeschlossene Spalten mit Grund | erfüllt: 1.348.099 Kredite, 19,98 %, 38 Spalten |
+| AP2 | Alle 15 Queries laufen, Frage und Ergebnis je Query | erfüllt |
+| AP3 | IV-Tabelle liegt vor, fünf stärkste Variablen fachlich erklärt | erfüllt: term_months, loan_to_income, fico_range_low, acc_open_past_24mths, dti |
+| AP4 | Scorecard-Tabelle liegt vor, PD zu Score erklärt | erfüllt: `reports/scorecard_table_a.csv`, Beispiel in findings |
+| AP5 | AUC/Gini/KS, Kalibrierung, Boosting-Vergleich, PSI | erfüllt: AUC 0,688, PSI 0,008 |
+| AP6 | Portfolio-EL als Zahl und Prozent, LGD hergeleitet | erfüllt: 887 Mio. USD, 11,83 %, LGD 62,2 % empirisch |
+| AP7 | Trade-off-Tabelle, Satz mit Zahlen | erfüllt: Cutoff 515, 11,83 % auf 8,80 %, 20,1 % Volumen |
+| AP8 | Repo reproduzierbar, Screenshots, Story | teilweise: reproduzierbar und Story ja, Screenshots fehlen bis das Dashboard in Power BI gebaut ist, Excel als Spezifikation |
+
+Details zu jedem AP in `reports/findings.md`, Interviewfragen mit Antworten in `reports/interview_notes.md`, Datei-für-Datei-Erklärung in `reports/walkthrough.md`.
