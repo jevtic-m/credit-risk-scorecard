@@ -41,7 +41,9 @@ Ausgeschlossen: 38 Spalten, die erst nach der Kreditvergabe entstehen (Zahlungen
 
 **Vintage und Reifegrad:** Nur Jahrgänge bis 2013 (60 Monate) bzw. bis 2015 (36 Monate) sind vollständig ausgereift. Die Ausfallquote der 36-Monats-Kredite stieg leicht von 10,9 % (2010) auf 14,9 % (2015), die der 60-Monats-Kredite lag bei 22 bis 28 %. Ausfallquoten der Jahrgänge ab 2016 sind nicht belastbar, weil dort noch kein Kredit seine volle Laufzeit hatte. Alle 15 Abfragen mit Ergebnis stehen in `01_sql/`.
 
-[Weitere Ergebnisse folgen mit AP3 bis AP8.]
+**AP3 – Split und Binning:** Zeitbasierter Split bei Januar 2016: Training 829.355 Kredite (2007–2015, Ausfallquote 18,46 %), Test 518.744 Kredite (2016–2018, Ausfallquote 22,42 %). WoE-Binning mit optbinning auf 32 Kandidaten ohne grade/int_rate. Stärkste Variablen nach Information Value: term_months (0,238), loan_to_income (0,126), fico_range_low (0,122), acc_open_past_24mths (0,082), dti (0,075). 17 Variablen mit IV ≥ 0,02 gehen ins Modell. Keine Variable des Hauptmodells liegt über 0,5, es gibt also kein Leckage-Signal. Zum Vergleich: Lending Clubs eigene Merkmale sub_grade (0,498), grade (0,469) und int_rate (0,466) sind jeweils doppelt so stark wie die beste eigene Variable.
+
+[Weitere Ergebnisse folgen mit AP4 bis AP8.]
 
 ## Annahmen und Limitationen
 
@@ -77,4 +79,9 @@ Voraussetzung: Python 3.11 oder neuer, Git, ca. 5 GB freier Plattenplatz.
    .venv/Scripts/python.exe 02_python/run_sql.py
    ```
 
-[Weitere Schritte folgen mit AP3 bis AP8.]
+5. AP3 – zeitbasierter Split und WoE-Binning (schreibt `reports/iv_table.csv`, `reports/woe_bins.csv`, Charts):
+   ```bash
+   .venv/Scripts/python.exe 02_python/02_woe_binning.py
+   ```
+
+[Weitere Schritte folgen mit AP4 bis AP8.]

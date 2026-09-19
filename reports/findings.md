@@ -219,3 +219,131 @@ in C und D, nicht nur in F und G.
 
 Erfüllt. Alle 15 Abfragen (plus 11b) laufen mit `.venv/Scripts/python.exe 02_python/run_sql.py`,
 jede hat Frage und Ergebnis im Kommentar, und die Interpretation steht oben.
+
+---
+
+## AP3: Feature-Aufbereitung, zeitbasierter Split, WoE-Binning
+
+### Was wurde gemacht
+
+1. Modellspalten aus `loans_clean.parquet` geladen (nie die ganze Datei), zwei Merkmale abgeleitet:
+   `credit_history_months` (Monate zwischen erster Kreditlinie und Vergabe) und `loan_to_income`
+   (Kreditsumme geteilt durch Jahreseinkommen).
+2. Zeitbasierter Split über `issue_date`, Schnitt 1. Januar 2016. Das Skript prüft per `assert`, dass
+   der jüngste Trainingskredit älter ist als der älteste Testkredit.
+3. WoE-Binning mit optbinning auf den Trainingsdaten: 32 Kandidaten für Modell A (ohne grade,
+   sub_grade, int_rate), getrennt davon die drei Benchmark-Merkmale. Fehlende Werte bekommen automatisch
+   einen eigenen Bin ("Missing"), es wird nichts imputiert. Bei Zahlenvariablen wird Monotonie erzwungen.
+4. Information Value je Variable, Leckage-Warnung bei IV > 0,5, Auswahl bei IV >= 0,02.
+5. Ergebnisse: `reports/iv_table.csv`, `reports/woe_bins.csv`, `reports/figures/iv_ranking.png`, WoE-Charts
+   der fünf stärksten Variablen, Binning-Prozess als Pickle für AP4.
+
+### Was kam heraus
+
+**Split:**
+
+| Teil | Kredite | Zeitraum | Ausfallquote |
+|---|---|---|---|
+| Train | 829.355 (61,5 %) | Juni 2007 bis Dezember 2015 | 18,46 % |
+| Test | 518.744 (38,5 %) | Januar 2016 bis Dezember 2018 | 22,42 % |
+
+Die höhere Ausfallquote im Test ist der Reifegrad-Effekt aus AP2: Von 2016 bis 2018 sind nur früh
+abgeschlossene Kredite enthalten, und darunter sind überdurchschnittlich viele frühe Ausfälle.
+
+**IV-Tabelle Modell A (Train), alle 32 Kandidaten:**
+
+| Variable | IV | Klasse | ausgewählt |
+|---|---|---|---|
+| term_months | 0,238 | mittel | ja |
+| loan_to_income | 0,126 | mittel | ja |
+| fico_range_low | 0,122 | mittel | ja |
+| acc_open_past_24mths | 0,082 | schwach | ja |
+| dti | 0,075 | schwach | ja |
+| verification_status | 0,050 | schwach | ja |
+| mths_since_recent_inq | 0,038 | schwach | ja |
+| loan_amnt | 0,036 | schwach | ja |
+| tot_cur_bal | 0,033 | schwach | ja |
+| annual_inc | 0,032 | schwach | ja |
+| inq_last_6mths | 0,028 | schwach | ja |
+| bc_util | 0,028 | schwach | ja |
+| total_rev_hi_lim | 0,028 | schwach | ja |
+| mort_acc | 0,028 | schwach | ja |
+| mo_sin_old_rev_tl_op | 0,023 | schwach | ja |
+| revol_util | 0,023 | schwach | ja |
+| home_ownership | 0,021 | schwach | ja |
+| purpose | 0,018 | nicht prädiktiv | nein |
+| addr_state | 0,014 | nicht prädiktiv | nein |
+| credit_history_months | 0,010 | nicht prädiktiv | nein |
+| open_acc | 0,008 | nicht prädiktiv | nein |
+| emp_length_years | 0,006 | nicht prädiktiv | nein |
+| mths_since_last_record | 0,006 | nicht prädiktiv | nein |
+| pub_rec | 0,005 | nicht prädiktiv | nein |
+| pub_rec_bankruptcies | 0,004 | nicht prädiktiv | nein |
+| num_tl_90g_dpd_24m | 0,004 | nicht prädiktiv | nein |
+| revol_bal | 0,004 | nicht prädiktiv | nein |
+| mths_since_last_delinq | 0,002 | nicht prädiktiv | nein |
+| delinq_2yrs | 0,002 | nicht prädiktiv | nein |
+| initial_list_status | 0,001 | nicht prädiktiv | nein |
+| total_acc | 0,000 | nicht prädiktiv | nein |
+| application_type | 0,000 | nicht prädiktiv | nein |
+
+Benchmark-Merkmale (nur Modell B): sub_grade 0,498, grade 0,469, int_rate 0,466. Alle drei "stark",
+keines über 0,5.
+
+**Die drei Prüfungen nach AP3:**
+
+| Prüfung | Ergebnis |
+|---|---|
+| Split zeitbasiert über issue_d, nicht zufällig? | Ja. Train endet Dezember 2015, Test beginnt Januar 2016, per assert geprüft. |
+| Eine Variable mit IV > 0,5 (Leckage-Warnsignal)? | Nein. Höchster Wert im Hauptmodell: term_months 0,238. Auch die Benchmark-Merkmale bleiben unter 0,5. |
+| optbinning ohne Fehler durch alle Variablen? | Ja. Alle 35 Variablen mit Löser-Status OPTIMAL, Laufzeit 18 Sekunden. |
+
+**Die fünf stärksten Variablen fachlich erklärt:**
+
+- **term_months (0,238):** 60-Monats-Kredite fallen mit 31,9 % im Training aus, 36-Monats-Kredite mit
+  13,9 %. Längere Laufzeit heißt länger Zeit für Jobverlust oder Krankheit, und wer 60 Monate wählt,
+  braucht die niedrigere Rate oft, weil das Budget knapp ist.
+- **loan_to_income (0,126):** Von 11,1 % Ausfallquote (Kredit unter 6 % des Jahreseinkommens) bis 28,6 %
+  (über 40 %). Je größer der Kredit im Verhältnis zum Einkommen, desto schwerer wiegt jede Rate. Die
+  abgeleitete Variable ist stärker als loan_amnt (0,036) und annual_inc (0,032) einzeln.
+- **fico_range_low (0,122):** Streng monoton von 24,8 % (unter 662) bis 7,3 % (ab 752). Der FICO-Score
+  fasst die Zahlungshistorie beim Kreditbüro zusammen, also genau das, was für Kreditrisiko zählt.
+- **acc_open_past_24mths (0,082):** Von 12,7 % (höchstens 1 neues Konto in 2 Jahren) bis 28,7 % (10 und
+  mehr). Viele neu eröffnete Konten bedeuten wachsenden Kreditbedarf. Der Missing-Bin (50.030 Kredite,
+  15,3 %) sind ältere Jahrgänge, bei denen Lending Club dieses Feld noch nicht geliefert hat.
+- **dti (0,075):** Von 13,0 % (DTI unter 7,2) bis 27,8 % (über 30). Hohe laufende Schulden im Verhältnis
+  zum Einkommen lassen wenig Puffer für eine weitere Rate.
+
+Auffällig: `emp_length_years` (0,006) und die Verzugsmerkmale (`delinq_2yrs`, `mths_since_last_delinq`)
+sind im Lending-Club-Portfolio kaum prädiktiv. Erklärung: Lending Club vergibt fast nur an Kunden mit
+FICO über 660, das Portfolio ist also bereits vorselektiert, und die Verzugsmerkmale streuen dort kaum.
+
+### Warum so entschieden
+
+- **Schnittdatum 1. Januar 2016.** Damit liegen alle vollständig ausgereiften 36-Monats-Jahrgänge (bis
+  2015) im Training, und der Test hat mit 518.744 Krediten genug Masse. Alternativen: Schnitt Mitte 2016
+  (mehr Training, kleinerer Test) oder Schnitt 2014 (Test ausgereifter, aber Training nur 400.000
+  Kredite). Nachteil des gewählten Schnitts: Der Testzeitraum ist nicht ausgereift; das wird in AP5 bei
+  der Kalibrierung ausdrücklich berücksichtigt.
+- **Zeitbasiert statt zufällig,** weil das Modell im Einsatz künftige Kredite bewertet. Ein zufälliger
+  Split würde Kredite aus denselben Monaten in Training und Test mischen und die Güte überschätzen.
+- **Fehlende Werte als eigener Bin,** nicht imputiert. "Information fehlt" ist im Kreditrisiko oft selbst
+  ein Signal. Beispiel: Der Missing-Bin von acc_open_past_24mths hat eine eigene, niedrigere Ausfallquote.
+- **Monotonie erzwungen** (auto_asc_desc) bei allen Zahlenvariablen. Kostet etwas Trennschärfe, macht
+  aber jede Scorecard-Zeile fachlich prüfbar: Mehr Verschuldung darf nie Punkte bringen.
+- **Höchstens 10 Bins, jeder Bin mindestens 2 % der Trainingsdaten.** Kleinere Bins wären Rauschen,
+  mehr Bins machen die Scorecard unlesbar.
+- **Auswahl rein nach IV >= 0,02.** purpose liegt mit 0,018 knapp darunter und fällt raus, obwohl es in
+  AP2 einen sichtbaren Effekt hatte. Der Effekt ist real, aber klein, und die Regel ist wichtiger als
+  die Ausnahme. Wer purpose drin haben will, senkt die Schwelle in `02_woe_binning.py`.
+- **installment nur im Benchmark B,** weil die Rate aus Betrag, Laufzeit und Zinssatz berechnet wird und
+  über den Zinssatz Lending Clubs Risikoeinstufung enthält. Ebenso funded_amnt (fast identisch mit
+  loan_amnt) und fico_range_high (immer low + 4) ausgeschlossen, um Dopplungen zu vermeiden.
+- **IV > 0,5 wird gemeldet, nicht automatisch entfernt.** Ob es Leckage ist, muss ein Mensch prüfen. In
+  diesem Lauf war keine Meldung nötig.
+
+### Abnahmekriterium AP3
+
+Erfüllt. Die IV-Tabelle liegt in `reports/iv_table.csv`, die fünf stärksten Variablen sind oben
+fachlich erklärt, alle drei Prüfungen (zeitbasierter Split, kein IV über 0,5, optbinning fehlerfrei)
+sind positiv.

@@ -1,0 +1,36 @@
+variable,dtype,n_bins,iv,status,model,iv_class,selected_model_a
+term_months,numerical,2,0.2382,OPTIMAL,model_a,mittel,True
+loan_to_income,numerical,10,0.1255,OPTIMAL,model_a,mittel,True
+fico_range_low,numerical,10,0.1218,OPTIMAL,model_a,mittel,True
+acc_open_past_24mths,numerical,9,0.0822,OPTIMAL,model_a,schwach,True
+dti,numerical,10,0.0748,OPTIMAL,model_a,schwach,True
+verification_status,categorical,3,0.0498,OPTIMAL,model_a,schwach,True
+mths_since_recent_inq,numerical,10,0.0377,OPTIMAL,model_a,schwach,True
+loan_amnt,numerical,8,0.0364,OPTIMAL,model_a,schwach,True
+tot_cur_bal,numerical,8,0.033,OPTIMAL,model_a,schwach,True
+annual_inc,numerical,10,0.032,OPTIMAL,model_a,schwach,True
+inq_last_6mths,numerical,4,0.0284,OPTIMAL,model_a,schwach,True
+bc_util,numerical,10,0.0282,OPTIMAL,model_a,schwach,True
+total_rev_hi_lim,numerical,10,0.0282,OPTIMAL,model_a,schwach,True
+mort_acc,numerical,6,0.0281,OPTIMAL,model_a,schwach,True
+mo_sin_old_rev_tl_op,numerical,10,0.023,OPTIMAL,model_a,schwach,True
+revol_util,numerical,10,0.0226,OPTIMAL,model_a,schwach,True
+home_ownership,categorical,3,0.0207,OPTIMAL,model_a,schwach,True
+purpose,categorical,4,0.018,OPTIMAL,model_a,nicht praediktiv,False
+addr_state,categorical,10,0.0139,OPTIMAL,model_a,nicht praediktiv,False
+credit_history_months,numerical,10,0.0098,OPTIMAL,model_a,nicht praediktiv,False
+open_acc,numerical,10,0.0078,OPTIMAL,model_a,nicht praediktiv,False
+emp_length_years,numerical,4,0.0064,OPTIMAL,model_a,nicht praediktiv,False
+mths_since_last_record,numerical,2,0.006,OPTIMAL,model_a,nicht praediktiv,False
+pub_rec,numerical,2,0.0052,OPTIMAL,model_a,nicht praediktiv,False
+pub_rec_bankruptcies,numerical,2,0.004,OPTIMAL,model_a,nicht praediktiv,False
+num_tl_90g_dpd_24m,numerical,2,0.0039,OPTIMAL,model_a,nicht praediktiv,False
+revol_bal,numerical,5,0.0035,OPTIMAL,model_a,nicht praediktiv,False
+mths_since_last_delinq,numerical,3,0.0023,OPTIMAL,model_a,nicht praediktiv,False
+delinq_2yrs,numerical,3,0.0017,OPTIMAL,model_a,nicht praediktiv,False
+initial_list_status,categorical,2,0.0005,OPTIMAL,model_a,nicht praediktiv,False
+total_acc,numerical,3,0.0003,OPTIMAL,model_a,nicht praediktiv,False
+application_type,categorical,1,0.0,OPTIMAL,model_a,nicht praediktiv,False
+sub_grade,categorical,10,0.4981,OPTIMAL,benchmark,stark,False
+grade,categorical,5,0.469,OPTIMAL,benchmark,stark,False
+int_rate,numerical,10,0.4657,OPTIMAL,benchmark,stark,False

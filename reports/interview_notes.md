@@ -72,3 +72,41 @@ Gruppe von Zeilen, lässt die Zeilen aber bestehen. Ich brauche sie, wenn eine Z
 anderen Zeilen sehen muss: In Abfrage 13 holt LAG den Vorjahreswert in dieselbe Zeile, um die Veränderung
 zu berechnen. In Abfrage 15 bildet SUM() OVER (ORDER BY grade) die kumulierte Summe von A nach G, so dass
 in der Zeile für C steht, dass A bis C 71,5 % des Volumens sind. Mit GROUP BY allein ginge beides nicht.
+
+---
+
+## Nach AP3 (Binning)
+
+**Was ist Weight of Evidence und warum passt es zur logistischen Regression?**
+
+WoE eines Bins ist der Logarithmus aus "Anteil der Guten im Bin" geteilt durch "Anteil der Schlechten im
+Bin". Bei fico_range_low ab 752 ist der WoE zum Beispiel +1,06 (nur 7,3 % Ausfälle), unter 662 ist er
+-0,38 (24,8 % Ausfälle). Die logistische Regression modelliert genau die Log-Odds, also den Logarithmus
+des Verhältnisses gut zu schlecht. WoE bringt jede Variable, egal ob Zahl oder Kategorie, auf dieselbe
+Log-Odds-Skala. Dadurch braucht die Regression keine Dummy-Variablen und die Koeffizienten sind direkt
+vergleichbar.
+
+**Ab welchem IV wirst du misstrauisch statt zufrieden?**
+
+Ab 0,5. Im Kreditrisiko ist keine einzelne Antragsvariable so stark, dass sie allein den Ausfall fast
+erklärt. Ein IV über 0,5 heißt fast immer, dass die Variable Wissen aus der Zukunft enthält, zum Beispiel
+Rückzahlungen. In meinem Hauptmodell liegt die stärkste Variable, term_months, bei 0,238. Selbst Lending
+Clubs eigene Einstufung sub_grade kommt nur auf 0,498, und die ist ja schon ein ganzes Modell. Wenn eine
+meiner Variablen 0,8 hätte, würde ich zuerst nach dem Datenfehler suchen, nicht feiern.
+
+**Warum imputierst du fehlende Werte nicht?**
+
+Weil "fehlt" im Kreditrisiko selbst eine Information ist. optbinning legt für jede Variable einen eigenen
+Missing-Bin an und schätzt dessen Ausfallquote. Bei acc_open_past_24mths fehlt der Wert bei 50.030
+Trainingskrediten, und diese Gruppe hat mit 15,3 % eine deutlich andere Ausfallquote als der
+Durchschnitt von 18,5 %. Würde ich den Median einsetzen, würde ich diese Gruppe in einen Bin mischen, zu
+dem sie nicht gehört, und die Information verlieren.
+
+**Warum hast du zeitbasiert statt zufällig gesplittet?**
+
+Weil das Modell im Einsatz künftige Kredite bewertet, nicht eine Zufallsstichprobe der Vergangenheit. Ich
+trainiere auf 2007 bis 2015 (829.355 Kredite) und teste auf 2016 bis 2018 (518.744 Kredite). Ein
+zufälliger Split hätte Kredite aus demselben Monat in beide Teile gelegt, und das Modell hätte davon
+profitiert, dass sich Konjunktur und Vergabepolitik in Train und Test gleichen. Der zeitbasierte Test ist
+härter: Die Ausfallquote im Test liegt mit 22,4 % über den 18,5 % im Training, und genau diese
+Verschiebung muss ein Modell in der Praxis aushalten.

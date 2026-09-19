@@ -47,3 +47,22 @@ Ausfuehren: `.venv/Scripts/python.exe 02_python/run_sql.py` (alle drei Dateien) 
 
 Die Sicht `loans` ist eine Sicht auf die Parquet-Datei, keine Kopie: Die SQL-Abfragen lesen genau die
 Daten, die AP1 bereinigt hat. Die Rohtabelle `loans_raw` wird ab hier nicht mehr benutzt.
+
+## AP3: Feature-Aufbereitung, zeitbasierter Split, WoE-Binning
+
+Ausfuehren: `.venv/Scripts/python.exe 02_python/02_woe_binning.py` (ca. 30 Sekunden)
+
+| Reihenfolge | Datei | Was passiert |
+|---|---|---|
+| 1 | `02_python/common.py` | Enthaelt ab AP3 die Modellkonfiguration: Schnittdatum `SPLIT_DATE`, die Variablenlisten fuer Modell A (ohne grade/int_rate) und Benchmark B, die Ausschlussliste `EXCLUDED_FROM_MODEL` mit Gruenden und die PDO-Parameter. `load_model_frame()` liest nur die Modellspalten aus der Parquet-Datei, leitet `credit_history_months` und `loan_to_income` ab und setzt die Spalte `sample` (train/test) nach `issue_date`. |
+| 2 | `02_python/02_woe_binning.py` | Prueft per assert, dass der Split zeitlich sauber ist. Fittet optbinning auf den Trainingsdaten (Modell-A-Variablen und getrennt die drei Benchmark-Merkmale), berechnet IV je Variable, meldet IV > 0,5 als Leckage-Warnung, waehlt Variablen mit IV >= 0,02 aus. |
+
+Ergebnisdateien im Repo:
+- `reports/iv_table.csv`: IV je Variable, Klasse, Auswahl-Flag (wird von AP4 gelesen)
+- `reports/woe_bins.csv`: alle Bins aller Variablen mit Anzahl, Ausfallquote, WoE, IV
+- `reports/figures/iv_ranking.png`: IV-Rangliste
+- `reports/figures/woe_<variable>.png`: Bins und Ausfallquote der fuenf staerksten Variablen
+
+Ergebnisdateien nicht im Repo (`.gitignore`):
+- `data/processed/split.parquet`: id und sample (train/test)
+- `data/processed/binning_process_a.pkl`: gefitteter Binning-Prozess Modell A
