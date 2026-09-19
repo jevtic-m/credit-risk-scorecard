@@ -1,0 +1,17 @@
+# Rohdaten und Zwischenergebnisse (1,3 GB und mehr) gehoeren nicht ins Repo
+data/raw/
+data/processed/
+data/credit.duckdb
+data/credit.duckdb.wal
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
