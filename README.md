@@ -55,7 +55,9 @@ Ausgeschlossen: 38 Spalten, die erst nach der Kreditvergabe entstehen (Zahlungen
 
 Kalibrierung: Im ausgereiften Training trifft die mittlere PD die Ausfallquote exakt (18,45 % gegen 18,46 %). Im Testzeitraum liegt die beobachtete Quote 27 % über der PD, weil dort nur früh abgeschlossene Kredite enthalten sind und frühe Ausfälle überrepräsentiert sind (Zensierung, nicht Modellfehler). PSI der Score-Verteilung Train gegen Test: 0,008, also stabil. Boosting bringt nur 0,008 AUC mehr, die erklärbare Scorecard bleibt das Hauptmodell. Charts in `reports/figures/`.
 
-[Weitere Ergebnisse folgen mit AP6 bis AP8.]
+**AP6 – Expected Loss:** LGD empirisch aus 269.360 ausgefallenen Krediten: Mittelwert 62,2 %, Median 66,4 % (36 Monate 57,3 %, 60 Monate 69,9 %, Grade A 52,3 % bis G 75,4 %). EAD = ausgezahlter Betrag. Lifetime-EL des zeitlich getrennten Testportfolios (2016–2018, 7,50 Mrd. USD): 887 Mio. USD oder 11,83 % des Volumens; Gesamtportfolio 2.353 Mio. USD oder 12,12 %. Backtest auf dem ausgereiften Training: Modell-EL 12,30 % gegen realisierten Verlust 11,61 %, das Modell ist leicht konservativ. Sensitivität: mit LGD 30 % sinkt der EL auf 5,71 %, mit 60 % auf 11,41 %.
+
+[Weitere Ergebnisse folgen mit AP7 bis AP8.]
 
 ## Annahmen und Limitationen
 
@@ -106,4 +108,9 @@ Voraussetzung: Python 3.11 oder neuer, Git, ca. 5 GB freier Plattenplatz.
    .venv/Scripts/python.exe 02_python/04_model_evaluation.py
    ```
 
-[Weitere Schritte folgen mit AP6 bis AP8.]
+8. AP6 – Expected Loss (schreibt `reports/lgd_summary.csv`, `expected_loss_summary.csv`, `data/processed/portfolio_el.parquet`):
+   ```bash
+   .venv/Scripts/python.exe 02_python/05_expected_loss.py
+   ```
+
+[Weitere Schritte folgen mit AP7 bis AP8.]

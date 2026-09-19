@@ -166,3 +166,44 @@ durch Anteil alt). Unter 0,10 gilt als stabil, über 0,25 als kritisch. Mein Sco
 2007–2015 und 2016–2018 einen PSI von 0,008, die Verteilung ist also praktisch gleich geblieben. Ein
 hoher PSI wäre kein Fehler des Modells, sondern ein Hinweis, dass die Kunden anders geworden sind und
 das Modell neu geprüft werden muss.
+
+---
+
+## Nach AP6 (Expected Loss)
+
+**Erkläre EL = PD x LGD x EAD.**
+
+Der erwartete Verlust eines Kredits ist die Wahrscheinlichkeit, dass er ausfällt (PD), mal dem Anteil
+des Betrags, der bei einem Ausfall verloren geht (LGD), mal dem Betrag, der im Ausfallzeitpunkt
+aussteht (EAD). Bei mir kommt die PD aus der Scorecard, die LGD ist empirisch 62,2 %, das EAD ist die
+Auszahlung. Ein Kredit über 15.000 USD mit PD 10 % hat einen EL von 0,10 x 0,622 x 15.000 = 933 USD.
+Über das Testportfolio summiert sind das 887 Mio. USD oder 11,83 % von 7,5 Mrd. USD Volumen. Wichtig:
+Meine PD gilt für die gesamte Laufzeit, der EL ist also ein Lifetime-EL, nicht ein 12-Monats-Wert.
+
+**Wie hast du die LGD geschätzt, und warum ist das hier ohne Leckage zulässig?**
+
+Auf den 269.360 ausgefallenen Krediten als 1 minus (Rückflüsse nach Ausfall plus vor dem Ausfall
+getilgter Betrag) geteilt durch die Auszahlung. Mittelwert 62,2 %, Median 66,4 %. Die Spalten
+recoveries und total_rec_prncp sind Leckage-Spalten, weil sie erst nach der Kreditvergabe entstehen. Im
+PD-Modell wären sie ein Fehler, denn dort will ich vorhersagen, ob ein Kredit ausfällt, und diese
+Spalten verraten es. Bei der LGD frage ich etwas anderes: Wenn ein Kredit ausgefallen ist, wie viel ist
+weg? Dafür schaue ich nur auf bereits ausgefallene Kredite, und dort ist der Ausfall keine Zukunft mehr,
+sondern Vergangenheit. Deshalb liegen die Spalten in einer eigenen Datei, die das PD-Modell nie sieht.
+
+**Unterschied zwischen regulatorischem EL und IFRS-9-ECL?**
+
+Der regulatorische EL nach Basel dient der Eigenkapitalunterlegung: 12-Monats-Horizont, durch den
+Zyklus, konservativ, teils mit aufsichtlich vorgegebenen Parametern (zum Beispiel die 45 % LGD im
+Foundation-IRB für unbesicherte Forderungen an Unternehmen, die kein Retail-Wert sind). Der
+IFRS-9-ECL dient der Risikovorsorge in der Bilanz: eigene, unverzerrte, zeitpunktbezogene und
+zukunftsgerichtete Schätzung, mit Horizont 12 Monate in Stage 1 und Lifetime in Stage 2 und 3. Mein
+Lifetime-EL mit empirischer LGD ist von der Logik her näher an einem Stage-2-ECL als an Basel.
+
+**Wann wechselt ein Kredit von Stage 1 nach Stage 2?**
+
+Bei einem signifikanten Anstieg des Kreditrisikos seit Vergabe (SICR), zum Beispiel wenn die PD
+deutlich über den Wert bei Vergabe steigt oder ein Frühwarnsignal anschlägt. Es gibt eine widerlegbare
+Vermutung, dass ab mehr als 30 Tagen Zahlungsverzug ein SICR vorliegt. Ab Stage 2 wird statt der
+12-Monats-ECL die Lifetime-ECL gebucht. Stage 3 ist der Ausfall selbst, dann wird der Zins nur noch auf
+Nettobasis vereinnahmt. Im Lending-Club-Datensatz wären die Status "Late (31-120 days)" typische
+Stage-2-Kandidaten, "Charged Off" ist Stage 3.

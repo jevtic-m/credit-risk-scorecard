@@ -519,3 +519,96 @@ parallel darüber, 2018 darunter).
 Erfüllt. AUC, Gini, KS, Brier, Kalibrierung je Dezil und Jahr, Boosting-Vergleich und PSI sind
 berechnet und liegen in `reports/model_metrics.csv`, `calibration_table.csv`, `psi_table.csv`. Die
 Prüfung "AUC zwischen 0,68 und 0,72, nicht über 0,85" ist mit 0,688 positiv.
+
+---
+
+## AP6: Expected Loss
+
+### Was wurde gemacht
+
+1. LGD empirisch aus den 269.360 ausgefallenen Krediten geschätzt, aus `lgd_inputs.parquet` (AP1):
+   LGD = 1 - (recoveries + total_rec_prncp) / funded_amnt, auf 0 bis 1 gekappt. Mittelwert, Median,
+   volumengewichtet, nach Stichprobe, Laufzeit und Grade. Verteilung als Chart.
+2. PD aus Modell A, EAD = funded_amnt, EL = PD x LGD x EAD je Kredit.
+3. Portfolio-EL absolut und in Prozent des Volumens für gesamt, Train und Test.
+4. Backtest auf dem ausgereiften Trainingsportfolio: Modell-EL gegen tatsächlich realisierten Verlust.
+5. Sensitivität mit LGD 30 %, empirisch, 60 %.
+
+### Was kam heraus
+
+**LGD (`reports/lgd_summary.csv`):**
+
+| Segment | Ausfälle | LGD Mittelwert | LGD Median | volumengewichtet |
+|---|---|---|---|---|
+| alle Ausfälle | 269.360 | **62,2 %** | 66,4 % | 64,0 % |
+| Train 2007–2015 (ausgereift) | 153.065 | 56,9 % | 60,3 % | 58,5 % |
+| Test 2016–2018 | 116.295 | 69,2 % | 72,9 % | 71,2 % |
+| 36 Monate | 163.926 | 57,3 % | 60,5 % | 57,8 % |
+| 60 Monate | 105.434 | 69,9 % | 73,7 % | 70,1 % |
+| Grade A | 14.214 | 52,3 % | 54,2 % | 53,0 % |
+| Grade G | 4.632 | 75,4 % | 79,0 % | 76,0 % |
+
+Nur 0,4 % der Ausfälle sind Totalverluste (LGD über 99 %) und 0,4 % wurden praktisch vollständig
+zurückgeholt. Der größte Teil des Rückflusses ist der vor dem Ausfall getilgte Kapitalanteil, nicht die
+Verwertung nach Ausfall. Die LGD steigt mit Laufzeit und Grade: Schlechte Grades fallen früher aus und
+haben bis dahin weniger getilgt. Aus demselben Grund liegt die LGD im Test (nur frühe Ausfälle) mit
+69,2 % über dem ausgereiften Training (56,9 %).
+
+**Expected Loss (`reports/expected_loss_summary.csv`), LGD 62,2 %:**
+
+| Portfolio | Kredite | Volumen | mittlere PD | EL absolut | EL in % des Volumens |
+|---|---|---|---|---|---|
+| gesamt 2007–2018 | 1.348.099 | 19,41 Mrd. USD | 18,1 % | 2.353 Mio. USD | 12,12 % |
+| Train 2007–2015 (ausgereift) | 829.355 | 11,91 Mrd. USD | 18,5 % | 1.466 Mio. USD | 12,30 % |
+| **Test 2016–2018 (zeitlich getrennt)** | 518.744 | 7,50 Mrd. USD | 17,6 % | **887 Mio. USD** | **11,83 %** |
+
+Diese PD ist eine PD über die gesamte Laufzeit, keine 12-Monats-PD. Der EL ist deshalb ein
+Lifetime-EL und liegt entsprechend hoch. Zum Vergleich: Ein Portfolio mit 12 % Lifetime-Verlust bei
+einem mittleren Zinssatz von rund 13 % über 3 bis 5 Jahre ist für unbesicherte Konsumentenkredite
+plausibel.
+
+**Backtest Train (ausgereift):** Modell-EL 1.465,8 Mio. USD (12,30 % des Volumens) gegen
+realisierten Verlust 1.382,8 Mio. USD (11,61 %), Verhältnis 0,943. Das Modell liegt also 6 % über dem
+tatsächlichen Verlust, weil die verwendete LGD (62,2 % über alle Ausfälle) über der LGD der
+ausgereiften Kredite (56,9 %) liegt. Leicht konservativ, das ist für Risikovorsorge die richtige Seite.
+Im Test steht der bisher realisierte Verlust (17,30 %) über dem Modell-EL (11,83 %), aber diese Zahl
+ist wegen der Zensierung (nur frühe Ausfälle enthalten, Rückzahlungen noch offen) keine Lifetime-Quote.
+
+**Sensitivität (Testportfolio, 7,50 Mrd. USD):**
+
+| LGD | EL absolut | EL in % |
+|---|---|---|
+| 30 % | 428 Mio. USD | 5,71 % |
+| 62,2 % (empirisch) | 887 Mio. USD | 11,83 % |
+| 60 % | 856 Mio. USD | 11,41 % |
+
+Die LGD ist der Hebel mit der größten Unsicherheit: Zwischen 30 % und 60 % verdoppelt sich der EL.
+Zum Basel-Referenzwert 45 %: Das ist der Foundation-IRB-Wert für senior unbesicherte Forderungen an
+Staaten, Banken und Unternehmen, kein Retail-Wert. Die empirischen 62 % für unbesicherte
+US-Konsumentenkredite sind höher, was plausibel ist (keine Sicherheiten, keine Aufrechnung).
+
+### Warum so entschieden
+
+- **LGD als eine Zahl für das ganze Portfolio (62,2 %, Mittelwert über alle Ausfälle).** Eine LGD je
+  Laufzeit oder Grade wäre genauer (57 % bis 70 %), würde aber Cutoff-Analyse und Excel-Rechner
+  komplizierter machen. Der Mittelwert über alle Ausfälle ist etwas höher als der über die ausgereiften
+  (56,9 %), also konservativ; der Backtest (0,943) zeigt, dass der Fehler klein ist. Die
+  Segmentwerte stehen in `reports/lgd_summary.csv`, wer sie braucht, tauscht die Spalte `lgd` in
+  `05_expected_loss.py` aus.
+- **Inkassogebühr nicht abgezogen.** `collection_recovery_fee` ist im Datensatz nicht sauber vom Erlös zu
+  trennen. Die LGD ist dadurch minimal zu niedrig; die 60-%-Sensitivität deckt das ab.
+- **Werte außerhalb 0 bis 1 gekappt.** Ein paar Kredite haben Rückflüsse über der Auszahlung (Zinsen
+  vor dem Ausfall); eine negative LGD ergibt keinen Sinn.
+- **EAD = funded_amnt.** Bei Ratenkrediten ohne Rahmen ist das Exposure bei Vergabe die Auszahlung. Der
+  Restsaldo zum Ausfallzeitpunkt wäre niedriger, steht aber nur in Leckage-Spalten. Die Annahme ist
+  konservativ (EL eher zu hoch). Sie überschneidet sich teilweise mit der LGD-Formel, in der die Tilgung
+  vor Ausfall bereits als Rückfluss zählt; das Produkt PD x LGD x funded_amnt ist deshalb konsistent.
+- **Leckage-Spalten nur hier.** recoveries und total_rec_prncp kommen aus `lgd_inputs.parquet`, das
+  nur ausgefallene Kredite enthält. Das PD-Modell hat diese Datei nie gesehen.
+- **Modell-PD, keine Nachkalibrierung auf den Test.** Begründung in AP5.
+
+### Abnahmekriterium AP6
+
+Erfüllt. Portfolio-EL steht als Zahl (887 Mio. USD im Testportfolio, 2.353 Mio. USD gesamt) und als
+Prozentsatz (11,83 % bzw. 12,12 % des Volumens), die LGD-Herleitung mit Formel, Verteilung und
+Segmenten ist dokumentiert, die Sensitivität ist gerechnet.

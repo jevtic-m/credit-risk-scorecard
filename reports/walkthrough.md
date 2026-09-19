@@ -96,3 +96,19 @@ Ergebnisdateien im Repo:
 - `reports/calibration_table.csv`: vorhergesagte PD gegen beobachtete Quote je Dezil und Segment
 - `reports/psi_table.csv`: PSI-Beitraege je Score-Bin
 - `reports/figures/roc_curve.png`, `score_distribution.png`, `ks_plot.png`, `calibration_plot.png`
+
+## AP6: Expected Loss
+
+Ausfuehren: `.venv/Scripts/python.exe 02_python/05_expected_loss.py` (wenige Sekunden)
+
+| Reihenfolge | Datei | Was passiert |
+|---|---|---|
+| 1 | `02_python/05_expected_loss.py` | Schaetzt die LGD empirisch aus `lgd_inputs.parquet` (nur ausgefallene Kredite, die einzige Stelle, an der recoveries und total_rec_prncp benutzt werden). EAD = funded_amnt. EL = PD x LGD x EAD je Kredit, Summen fuer gesamt, Train, Test. Backtest auf dem ausgereiften Training. Sensitivitaet LGD 30 / empirisch / 60 %. |
+
+Ergebnisdateien im Repo:
+- `reports/lgd_summary.csv`: LGD nach Segment (Stichprobe, Laufzeit, Grade)
+- `reports/expected_loss_summary.csv`: EL je Portfolio und LGD-Annahme
+- `reports/figures/lgd_distribution.png`
+
+Ergebnisdateien nicht im Repo:
+- `data/processed/portfolio_el.parquet`: alle Kredite mit Score, PD, LGD, EAD, EL (Grundlage fuer AP7 und AP8)
