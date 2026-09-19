@@ -42,3 +42,33 @@ Weil von 2018 erst 56.318 von 495.242 Krediten abgeschlossen sind, also 11 %. Ab
 bisher vor allem Kredite, die sehr früh zurückgezahlt oder sehr früh ausgefallen sind. Der Jahrgang ist
 nicht ausgereift, die Quote ist deshalb nicht vergleichbar. In AP2 wird das über die Vintage-Analyse mit
 Reifegrad-Hinweis sauber behandelt.
+
+---
+
+## Nach AP2 (SQL)
+
+**Was ist eine Vintage-Analyse und wozu braucht man sie?**
+
+Eine Vintage-Analyse gruppiert Kredite nach ihrem Ausgabezeitraum (Jahrgang, Quartal) und vergleicht,
+wie sich die Ausfallquote je Jahrgang entwickelt. Man braucht sie, um zu erkennen, ob sich die Qualität
+des Neugeschäfts verändert hat, unabhängig davon, wie groß das Portfolio insgesamt ist. In diesem
+Repo zeigt sie zum Beispiel, dass die 36-Monats-Kredite von 2010 bis 2015 langsam von 10,9 % auf
+14,9 % Ausfallquote gestiegen sind, während das Neugeschäft je Quartal um mehr als das Zehnfache
+gewachsen ist.
+
+**Warum ist die Ausfallquote der Vintages von 2018 niedriger als die von 2014?**
+
+Weil der Datensatz im Dezember 2018 endet und die Kredite von 2018 ihre Laufzeit noch gar nicht
+durchlaufen haben. In den Daten mit bekanntem Ausgang stehen von 2018 nur 56.318 von 495.242 Krediten,
+und zwar die, die früh zurückgezahlt oder früh ausgefallen sind. Die Quote von 15,8 % sagt deshalb
+nichts über den Jahrgang aus. Vergleichbar sind nur ausgereifte Jahrgänge: 36-Monats-Kredite bis 2015,
+60-Monats-Kredite bis 2013. Bei 2014 ist die Quote der abgeschlossenen Kredite sogar höher (18,45 %) als
+die der ausgereiften (13,73 %), weil die noch laufenden 60-Monats-Kredite in der ausgereiften Menge fehlen.
+
+**Wann brauchst du eine Window Function statt GROUP BY?**
+
+GROUP BY verdichtet mehrere Zeilen zu einer Zeile pro Gruppe. Eine Window Function rechnet über eine
+Gruppe von Zeilen, lässt die Zeilen aber bestehen. Ich brauche sie, wenn eine Zeile einen Wert aus
+anderen Zeilen sehen muss: In Abfrage 13 holt LAG den Vorjahreswert in dieselbe Zeile, um die Veränderung
+zu berechnen. In Abfrage 15 bildet SUM() OVER (ORDER BY grade) die kumulierte Summe von A nach G, so dass
+in der Zeile für C steht, dass A bis C 71,5 % des Volumens sind. Mit GROUP BY allein ginge beides nicht.

@@ -32,3 +32,18 @@ Ergebnisdateien im Repo:
 - `reports/ap1_summary.md`: Kennzahlen des Laufs
 - `reports/findings.md`: Was gemacht, was rauskam, warum so entschieden
 - `reports/interview_notes.md`: Interviewfragen mit Antworten aus den echten Ergebnissen
+
+## AP2: SQL-Analysen
+
+Ausfuehren: `.venv/Scripts/python.exe 02_python/run_sql.py` (alle drei Dateien) oder mit Dateiname als Argument.
+
+| Reihenfolge | Datei | Was passiert |
+|---|---|---|
+| 1 | `02_python/common.py` | Gemeinsame Pfade und Hilfsfunktionen fuer alle Skripte ab AP2. `connect()` oeffnet die DuckDB-Datei und legt die Sicht `loans` auf `loans_clean.parquet` an. `run_sql_file()` fuehrt eine SQL-Datei Abfrage fuer Abfrage aus. |
+| 2 | `02_python/run_sql.py` | Kleiner Runner: nimmt SQL-Dateien als Argument, fuehrt sie ueber `common.py` aus und druckt jedes Ergebnis. |
+| 3 | `01_sql/02_default_rates.sql` | Abfragen 1 bis 10: Portfolio-Uebersicht und Ausfallquoten nach grade, sub_grade, term, purpose, Einkommen, Bundesstaat, home_ownership x verification, DTI, FICO. |
+| 4 | `01_sql/03_vintage.sql` | Abfragen 11 bis 13: Vintage je Jahr mit Reifegrad-Kennzeichnung, Vintage je Laufzeit (11b), Vintage je Quartal als CTE, Kreditsumme und Zins ueber die Zeit mit LAG. |
+| 5 | `01_sql/04_cohorts.sql` | Abfragen 14 und 15: Kohortenmatrix Jahr x Grade (nur ausgereifte Kredite) und Konzentrationsanalyse mit kumulierten Anteilen ueber SUM() OVER. |
+
+Die Sicht `loans` ist eine Sicht auf die Parquet-Datei, keine Kopie: Die SQL-Abfragen lesen genau die
+Daten, die AP1 bereinigt hat. Die Rohtabelle `loans_raw` wird ab hier nicht mehr benutzt.

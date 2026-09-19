@@ -122,3 +122,100 @@ bei 29 Krediten.
 Erfüllt. Nach dem Filter bleiben 1.348.099 Kredite, die Ausfallquote ist 19,98 %, und die 38
 ausgeschlossenen Spalten sind mit Begründung im Code (`02_python/01_data_prep.py`, Liste
 `LEAKAGE_COLUMNS`) und oben dokumentiert.
+
+---
+
+## AP2: SQL-Analysen
+
+### Was wurde gemacht
+
+15 SQL-Abfragen (plus eine Zusatzabfrage 11b) in drei Dateien, alle auf der Sicht `loans`, die direkt
+`data/processed/loans_clean.parquet` liest. Ausführung mit `02_python/run_sql.py`, das die Sicht anlegt
+und jede Abfrage ausgibt. Jede Abfrage hat im Kommentar die fachliche Frage und das Ergebnis mit Zahl.
+
+| Datei | Abfragen |
+|---|---|
+| `01_sql/02_default_rates.sql` | 1 Portfolio, 2 grade, 3 sub_grade, 4 term, 5 purpose, 6 Einkommen, 7 Bundesstaat, 8 home_ownership x verification, 9 DTI, 10 FICO |
+| `01_sql/03_vintage.sql` | 11 Vintage je Jahr mit Reifegrad, 11b Vintage je Laufzeit, 12 Vintage je Quartal (CTE), 13 Kreditsumme und Zins mit LAG |
+| `01_sql/04_cohorts.sql` | 14 Kohortenmatrix Jahr x Grade, 15 Konzentration nach Grade (kumulierte Anteile) |
+
+### Was kam heraus
+
+**Portfolio (Abfrage 1):** 1.348.099 Kredite, 19,41 Mrd. USD, Ausfallquote 19,98 % nach Anzahl und 21,56 %
+nach Volumen. Größere Kredite fallen also etwas öfter aus.
+
+**Die stärksten Treiber (Abfragen 2 bis 10):**
+
+| Segment | niedrigste Quote | höchste Quote |
+|---|---|---|
+| grade (2) | A 6,04 % | G 49,67 % |
+| term (4) | 36 Monate 16,02 % | 60 Monate 32,45 % |
+| FICO (10) | ab 750: 8,89 % | 660-679: 25,30 % |
+| DTI (9) | unter 10: 14,93 % | ab 40: 30,55 % |
+| Einkommen (6) | ab 120k: 15,62 % | unter 40k: 23,77 % |
+| purpose (5) | wedding 12,43 % | small_business 29,86 % |
+| Bundesstaat (7) | OR 14,43 % | MS 26,11 % |
+| home_ownership x verification (8) | MORTGAGE / Not Verified 12,72 % | RENT / Verified 27,88 % |
+
+grade und sub_grade sind fast perfekt monoton (A1 3,23 % bis G5 52,66 %). Das bestätigt: Lending Clubs
+eigene Einstufung enthält sehr viel Information. Genau deshalb bleibt sie aus dem Hauptmodell draußen,
+sonst würden wir ein fremdes Modell kopieren statt ein eigenes zu bauen.
+
+Überraschung in Abfrage 8: "Verified" hat in jeder Wohnform die höchste Ausfallquote, "Not Verified"
+die niedrigste. Erklärung: Lending Club verlangt die Einkommensverifikation gezielt bei riskanteren
+Anträgen. Der Status ist also ein Signal für Risiko, das Lending Club schon gesehen hat, nicht die
+Ursache. Solche Selektionseffekte sind bei Beobachtungsdaten normal und müssen benannt werden.
+
+**Vintage (Abfragen 11, 11b, 12):** Über alle abgeschlossenen Kredite sieht es so aus, als stiege die
+Ausfallquote von 15,6 % (2013) auf 23,3 % (2016) und fiele 2018 auf 15,8 %. Das ist ein Artefakt des
+Reifegrads:
+
+| Jahrgang | abgeschlossen | davon ausgereift | Quote alle abgeschlossenen | Quote nur ausgereifte |
+|---|---|---|---|---|
+| 2013 | 134.804 | 100 % | 15,60 % | 15,60 % |
+| 2014 | 223.103 | 72,9 % | 18,45 % | 13,73 % |
+| 2015 | 375.546 | 75,4 % | 20,19 % | 14,89 % |
+| 2016 | 293.105 | 0 % | 23,29 % | nicht berechenbar |
+| 2017 | 169.321 | 0 % | 23,13 % | nicht berechenbar |
+| 2018 | 56.318 | 0 % | 15,76 % | nicht berechenbar |
+
+Getrennt nach Laufzeit (11b) steigt die Quote der 36-Monats-Kredite leicht von 10,9 % (2010) auf 14,9 %
+(2015). 60-Monats-Kredite (nur bis 2013 ausgereift) liegen bei 22 bis 28 %, rund doppelt so hoch. Der
+Sprung zwischen 2013 und 2014 in Abfrage 11 kommt daher, dass ab 2014 nur noch 36-Monats-Kredite
+ausgereift sind, die Mischung sich also ändert.
+
+Das Neugeschäft ist von 110 Mio. USD (Q1 2012) auf 1,13 Mrd. USD (Q4 2015) je Quartal gewachsen, die
+Ausfallquote der ausgereiften Kredite blieb dabei zwischen 12,9 % und 17,0 % (Abfrage 12).
+
+**Kreditsumme und Zins (13):** Durchschnittliche Kreditsumme von 7.946 USD (2007) auf rund 14.500 USD
+(ab 2013), danach stabil. Zinssatz zwischen 11,8 % und 14,5 %, Hoch 2013, Tief 2015.
+
+**Kohorten (14):** In jedem ausgereiften Jahrgang gilt A < B < C < D < E < F. Grade A liegt stabil bei
+5 bis 7 %, die schlechten Grades schwanken stark (F: 29,5 % in 2014, 42,4 % in 2015).
+
+**Konzentration (15):** A bis C sind 71,5 % des Volumens, aber nur 51,9 % des ausgefallenen Volumens.
+D bis G sind 28,5 % des Volumens und tragen 48,1 % der Ausfälle. Allein Grade C trägt 30,2 % des
+ausgefallenen Volumens, weil die Klasse groß und mittel riskant ist. Das Risiko sitzt in absoluten Zahlen
+in C und D, nicht nur in F und G.
+
+### Warum so entschieden
+
+- **Reifegrad über "volle Laufzeit vor Datenende".** Ein Kredit gilt als ausgereift, wenn
+  issue_date + term_months <= Dezember 2018. Die Alternative (Ausfälle in den ersten 24 Monaten zählen)
+  bräuchte den Ausfallzeitpunkt, der nur aus der Leckage-Spalte last_pymnt_d ableitbar wäre. Diese
+  Spalte liegt bewusst nicht in loans_clean.
+- **Vintage zusätzlich je Laufzeit (11b).** Ohne die Trennung vermischt sich ab 2014 der Reifegrad-Effekt
+  mit dem Laufzeit-Effekt. Die Zusatzabfrage macht das sichtbar.
+- **Feste Klassengrenzen statt NTILE** bei Einkommen, DTI und FICO, weil sich feste Grenzen im Gespräch
+  benennen lassen ("unter 40.000 USD") und die Klassen für das Dashboard stabil bleiben.
+- **Mindestgröße 5.000 Kredite je Bundesstaat** in Abfrage 7, sonst schwanken die Quoten kleiner
+  Staaten zufällig.
+- **Bedingte Aggregation statt PIVOT** in Abfrage 14, damit die Abfrage in jeder SQL-Datenbank läuft.
+- **Hilfsskripte run_sql.py und common.py.** Beide stehen nicht in der ursprünglich geplanten Repo-Struktur.
+  Sie sind reine Ausführungshilfe (Sicht `loans` anlegen, SQL-Datei ausführen, Ergebnis drucken), damit
+  die SQL-Dateien ohne Kopieren in eine Konsole laufen.
+
+### Abnahmekriterium AP2
+
+Erfüllt. Alle 15 Abfragen (plus 11b) laufen mit `.venv/Scripts/python.exe 02_python/run_sql.py`,
+jede hat Frage und Ergebnis im Kommentar, und die Interpretation steht oben.
