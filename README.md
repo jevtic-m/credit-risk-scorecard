@@ -45,7 +45,17 @@ Ausgeschlossen: 38 Spalten, die erst nach der Kreditvergabe entstehen (Zahlungen
 
 **AP4 – Scorecard:** Logistische Regression auf WoE-Werten, skaliert mit PDO 20 und 600 Punkten bei Odds 50:1. Zwei Variablen (loan_amnt, revol_util) bekamen wegen Überschneidung mit loan_to_income ein positives Vorzeichen und wurden entfernt; das Hauptmodell A hat 15 Variablen, alle mit plausiblem Vorzeichen. Scores liegen zwischen 453 und 619 Punkten. Erste Güte: AUC 0,706 im Training und 0,688 im zeitlich getrennten Test. Das Benchmark-Modell B mit Lending Clubs grade, sub_grade und int_rate erreicht 0,705 im Test, also nur 0,017 mehr. Die Scorecard-Tabelle steht in `reports/scorecard_table_a.csv`.
 
-[Weitere Ergebnisse folgen mit AP5 bis AP8.]
+**AP5 – Modellgüte (Test 2016–2018, zeitlich getrennt):**
+
+| Modell | AUC | Gini | KS |
+|---|---|---|---|
+| A Scorecard, 15 Variablen ohne grade/int_rate | 0,688 | 0,377 | 0,270 |
+| B Benchmark mit grade, sub_grade, int_rate | 0,705 | 0,411 | 0,296 |
+| Gradient Boosting, gleiche 15 Variablen wie A | 0,696 | 0,393 | 0,282 |
+
+Kalibrierung: Im ausgereiften Training trifft die mittlere PD die Ausfallquote exakt (18,45 % gegen 18,46 %). Im Testzeitraum liegt die beobachtete Quote 27 % über der PD, weil dort nur früh abgeschlossene Kredite enthalten sind und frühe Ausfälle überrepräsentiert sind (Zensierung, nicht Modellfehler). PSI der Score-Verteilung Train gegen Test: 0,008, also stabil. Boosting bringt nur 0,008 AUC mehr, die erklärbare Scorecard bleibt das Hauptmodell. Charts in `reports/figures/`.
+
+[Weitere Ergebnisse folgen mit AP6 bis AP8.]
 
 ## Annahmen und Limitationen
 
@@ -91,4 +101,9 @@ Voraussetzung: Python 3.11 oder neuer, Git, ca. 5 GB freier Plattenplatz.
    .venv/Scripts/python.exe 02_python/03_scorecard.py
    ```
 
-[Weitere Schritte folgen mit AP5 bis AP8.]
+7. AP5 – Modellgüte (schreibt `reports/model_metrics.csv`, `calibration_table.csv`, `psi_table.csv`, Charts):
+   ```bash
+   .venv/Scripts/python.exe 02_python/04_model_evaluation.py
+   ```
+
+[Weitere Schritte folgen mit AP6 bis AP8.]

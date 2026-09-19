@@ -82,3 +82,17 @@ Ergebnisdateien im Repo:
 Ergebnisdateien nicht im Repo (`.gitignore`):
 - `data/processed/scored_loans.parquet`: alle 1.348.099 Kredite mit sample, Score und PD beider Modelle plus Auswertungsspalten (Grundlage fuer AP5 bis AP8)
 - `data/processed/scorecard_a.pkl`, `scorecard_b.pkl`: die gefitteten Modelle
+
+## AP5: Modellguete
+
+Ausfuehren: `.venv/Scripts/python.exe 02_python/04_model_evaluation.py` (ca. 40 Sekunden)
+
+| Reihenfolge | Datei | Was passiert |
+|---|---|---|
+| 1 | `02_python/04_model_evaluation.py` | Liest `scored_loans.parquet`. Berechnet AUC, Gini, KS und Brier fuer Modell A, Modell B und ein Gradient-Boosting auf denselben 15 Rohvariablen. Prueft den AUC gegen 0,68 bis 0,72 und bricht bei ueber 0,85 ab. Kalibrierung je PD-Dezil fuer Train, Test und jedes Testjahr. PSI der Score-Verteilung Train gegen Test. Vier Charts. |
+
+Ergebnisdateien im Repo:
+- `reports/model_metrics.csv`: Trennschaerfe je Modell und Stichprobe
+- `reports/calibration_table.csv`: vorhergesagte PD gegen beobachtete Quote je Dezil und Segment
+- `reports/psi_table.csv`: PSI-Beitraege je Score-Bin
+- `reports/figures/roc_curve.png`, `score_distribution.png`, `ks_plot.png`, `calibration_plot.png`

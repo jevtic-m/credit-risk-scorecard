@@ -431,3 +431,91 @@ Score = 487,12 + 28,85 x ln(9,68) = 552,6. Summe der gerundeten Bin-Punkte in de
 
 Erfüllt. Die Scorecard-Tabelle mit Punkten je Bin liegt in `reports/scorecard_table_a.csv`, die
 Umrechnung PD zu Score ist oben mit Formel und Beispiel erklärt, Modell B liegt als Benchmark vor.
+
+---
+
+## AP5: Modellgüte
+
+### Was wurde gemacht
+
+1. Trennschärfe für Modell A, Modell B und ein Gradient-Boosting-Benchmark, jeweils auf Train und Test:
+   AUC, Gini, KS-Statistik, Brier-Score.
+2. AUC-Prüfung gegen die vorab festgelegte Erwartung 0,68 bis 0,72, Abbruch bei über 0,85.
+3. Kalibrierung: vorhergesagte PD gegen beobachtete Ausfallquote je PD-Dezil, für Train, Test und die
+   drei Testjahre einzeln.
+4. Gradient Boosting (HistGradientBoosting, 300 Bäume) auf exakt denselben 15 Rohvariablen wie Modell A.
+5. PSI der Score-Verteilung Train gegen Test.
+6. Charts: ROC-Kurve, Score-Verteilung Good vs. Bad, KS-Plot, Kalibrierungsplot.
+
+### Was kam heraus
+
+**Trennschärfe (`reports/model_metrics.csv`):**
+
+| Modell | Stichprobe | AUC | Gini | KS | Brier |
+|---|---|---|---|---|---|
+| A Scorecard (15 Variablen, ohne grade) | Train | 0,706 | 0,412 | 0,299 | 0,137 |
+| A Scorecard | **Test 2016–2018** | **0,688** | **0,377** | **0,270** | 0,163 |
+| B Benchmark (mit grade, sub_grade, int_rate, installment) | Test | 0,705 | 0,411 | 0,296 | 0,160 |
+| Gradient Boosting (gleiche 15 Variablen wie A) | Train | 0,722 | 0,445 | 0,322 | 0,135 |
+| Gradient Boosting | Test | 0,696 | 0,393 | 0,282 | 0,161 |
+
+- **AUC-Prüfung:** 0,688 liegt im erwarteten Bereich 0,68 bis 0,72. Kein Leckage-Signal, kein Abbruch.
+- **Boosting bringt wenig:** +0,008 AUC im Test gegenüber der Scorecard, bei denselben Variablen. Im
+  Training ist der Abstand größer (+0,016), das Boosting passt sich also stärker an die Vergangenheit an.
+- **Lending Clubs eigene Einstufung bringt +0,017 AUC** (Modell B). Das ist der Wert der Information, die
+  in grade und int_rate über die 15 Antragsvariablen hinaus steckt.
+
+**Kalibrierung Modell A (`reports/calibration_table.csv`):**
+
+| Segment | Kredite | mittlere PD | beobachtete Quote | Verhältnis beobachtet/PD |
+|---|---|---|---|---|
+| Train 2007–2015 | 829.355 | 18,45 % | 18,46 % | 1,00 |
+| Test 2016–2018 | 518.744 | 17,62 % | 22,42 % | 1,27 |
+| Test 2016 | 293.105 | 17,92 % | 23,29 % | 1,30 |
+| Test 2017 | 169.321 | 17,44 % | 23,13 % | 1,33 |
+| Test 2018 | 56.318 | 16,55 % | 15,76 % | 0,95 |
+
+Je PD-Dezil im Test liegt die beobachtete Quote gleichmäßig 10 bis 43 % über der PD (Verhältnis 1,10
+bis 1,43), die Rangfolge stimmt aber in jedem Dezil (5,9 % im besten, 46,4 % im schlechtesten Dezil).
+
+Einordnung: Das ist kein Kalibrierungsfehler des Modells, sondern der Reifegrad-Effekt aus AP2. Im
+Testzeitraum sind nur die bis Ende 2018 abgeschlossenen Kredite enthalten. Ein 2016 vergebener
+60-Monats-Kredit ist 2018 nur abgeschlossen, wenn er entweder früh ausgefallen ist oder vorzeitig
+komplett zurückgezahlt wurde, und frühe Ausfälle sind in dieser Auswahl überrepräsentiert. Die
+"beobachtete Quote" von 22,4 % ist deshalb keine Lifetime-Ausfallquote des Jahrgangs, sondern nach
+oben verzerrt. Beim Jahrgang 2018 (nur 11 % abgeschlossen) kippt es in die andere Richtung (0,95).
+Die auf dem ausgereiften Training kalibrierte PD (Verhältnis 1,00) ist die bessere Schätzung der
+Lifetime-PD. Was das Modell zusätzlich nicht abbildet: Sollte sich die Kreditqualität ab 2016 wirklich
+verschlechtert haben (AP2 zeigt einen leichten Anstieg bei den 36-Monats-Krediten), unterschätzt die
+PD das echte Risiko ein Stück weit. Für die EL-Rechnung in AP6 wird deshalb die Modell-PD verwendet und
+diese Unsicherheit über die LGD-Sensitivität und die Cutoff-Tabelle sichtbar gemacht.
+
+**Stabilität (PSI, `reports/psi_table.csv`):** PSI der Score-Verteilung Train gegen Test = 0,008,
+weit unter der Warnschwelle 0,10. Die Score-Verteilung hat sich zwischen 2007–2015 und 2016–2018
+praktisch nicht verschoben (Mittelwert 535 gegen 537). Nur die besten Scores ab 563 sind im Test etwas
+häufiger (12,6 % statt 10,5 %).
+
+**Charts in `reports/figures/`:** `roc_curve.png` (drei Modelle), `score_distribution.png` (Good vs.
+Bad), `ks_plot.png` (KS = 0,270), `calibration_plot.png` (Train auf der Diagonalen, Test 2016/2017
+parallel darüber, 2018 darunter).
+
+### Warum so entschieden
+
+- **Boosting mit denselben 15 Variablen,** nicht mit allen 32 Kandidaten. So misst der Vergleich den
+  Algorithmus, nicht zusätzliche Daten. Keine Hyperparameter-Suche, weil es ein Benchmark ist.
+- **Scorecard trotz Boosting.** +0,008 AUC rechtfertigen kein Modell, das weder ein Kunde noch ein
+  Prüfer nachvollziehen kann. Die Scorecard hat feste Punkte je Bin, prüfbare Vorzeichen und Monotonie,
+  läuft in jedem Kernbanksystem und lässt sich über die Zeit über PSI je Variable überwachen.
+  Aufsichtlich (BaFin, EBA) und gegenüber Kunden (Begründungspflicht bei Ablehnung) ist das der
+  entscheidende Punkt.
+- **Kalibrierung auf der ausgereiften Basis akzeptiert, nicht auf den Test umgerechnet.** Eine
+  Anpassung des Intercepts an die Testquote (Faktor 1,27) würde eine zensierte, nach oben verzerrte
+  Quote als Wahrheit nehmen. Die Verzerrung ist dokumentiert, die Rangfolge stimmt, und die
+  Unsicherheit wird in AP6/AP7 über Sensitivitäten gezeigt.
+- **PSI mit Train-Dezilen als Referenz,** Standardvorgehen, 10 Bins.
+
+### Abnahmekriterium AP5
+
+Erfüllt. AUC, Gini, KS, Brier, Kalibrierung je Dezil und Jahr, Boosting-Vergleich und PSI sind
+berechnet und liegen in `reports/model_metrics.csv`, `calibration_table.csv`, `psi_table.csv`. Die
+Prüfung "AUC zwischen 0,68 und 0,72, nicht über 0,85" ist mit 0,688 positiv.

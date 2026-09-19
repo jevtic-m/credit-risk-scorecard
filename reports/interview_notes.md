@@ -131,3 +131,38 @@ als die Zahl ist, wie sie zustande kam: zeitlich getrennt getestet (2016 bis 201
 ohne Leckage-Spalten, ohne grade und int_rate. Das Benchmark-Modell mit Lending Clubs grade und int_rate
 kommt auf 0,705, also nur 0,017 mehr. Ein AUC von 0,90 wäre bei diesen Daten kein Erfolg, sondern ein
 sicheres Zeichen, dass Information aus der Zukunft ins Modell gerutscht ist.
+
+---
+
+## Nach AP5 (Modellgüte)
+
+**Warum logistische Regression statt Boosting, obwohl Boosting besser abschneidet?**
+
+Das Boosting erreicht mit denselben 15 Variablen im Test 0,696 AUC gegen 0,688 der Scorecard, also
+0,008 mehr. Dafür bekäme ich ein Modell mit 300 Bäumen, das weder ein Kunde bei einer Ablehnung noch
+ein Prüfer nachvollziehen kann. Die Scorecard hat feste Punkte je Bin, ich kann jedes Vorzeichen und
+jede Monotonie fachlich prüfen (zwei Variablen sind genau deshalb rausgeflogen), sie läuft in jedem
+Kernbanksystem und lässt sich je Variable über die Zeit überwachen. BaFin und EBA verlangen
+nachvollziehbare Modelle, und Kunden haben Anspruch auf eine Begründung. Das ist eine Abwägung, kein
+Ausweichen: Wenn Boosting 0,05 mehr brächte, wäre die Diskussion eine andere.
+
+**Was ist der Unterschied zwischen Trennschärfe und Kalibrierung, und welches ist hier wichtiger?**
+
+Trennschärfe fragt: Ist Kunde A riskanter als Kunde B? Das misst der AUC. Kalibrierung fragt: Fallen
+von 100 Kunden mit PD 10 % wirklich etwa 10 aus? Für die Expected-Loss-Rechnung ist Kalibrierung
+wichtiger, weil EL = PD x LGD x EAD die PD direkt als Zahl benutzt. Ein Modell, das perfekt rangiert,
+aber alle PDs halbiert, liefert die halbe Risikovorsorge. In meinem Repo ist das Modell auf dem
+ausgereiften Training kalibriert (mittlere PD 18,45 % gegen 18,46 % beobachtet). Im Testzeitraum liegt
+die beobachtete Quote 27 % über der PD, aber das ist der Zensierungseffekt: Von 2016 bis 2018 sind nur
+die früh abgeschlossenen Kredite enthalten, und frühe Ausfälle sind darin überrepräsentiert. Den Effekt
+muss man erkennen, sonst würde man das Modell fälschlich "nachkalibrieren".
+
+**Was misst der PSI?**
+
+Der Population Stability Index misst, ob sich die Verteilung des Scores (oder einer Variable) zwischen
+zwei Zeiträumen verschoben hat. Man teilt die Referenz in zehn gleich große Bins, schaut, welcher
+Anteil der neuen Daten in jeden Bin fällt, und summiert (Anteil neu minus Anteil alt) mal ln(Anteil neu
+durch Anteil alt). Unter 0,10 gilt als stabil, über 0,25 als kritisch. Mein Score hat zwischen
+2007–2015 und 2016–2018 einen PSI von 0,008, die Verteilung ist also praktisch gleich geblieben. Ein
+hoher PSI wäre kein Fehler des Modells, sondern ein Hinweis, dass die Kunden anders geworden sind und
+das Modell neu geprüft werden muss.
