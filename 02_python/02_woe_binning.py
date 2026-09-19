@@ -27,7 +27,7 @@ from optbinning import BinningProcess
 from common import (
     BENCHMARK_CATEGORICAL, BENCHMARK_NUMERIC, CATEGORICAL_FEATURES, FIGURES_DIR,
     MODEL_A_FEATURES, NUMERIC_FEATURES, PROCESSED_DIR, REPORTS_DIR, SPLIT_DATE,
-    load_model_frame,
+    clean_bin_label, load_model_frame,
 )
 
 IV_TABLE_CSV = REPORTS_DIR / "iv_table.csv"
@@ -67,6 +67,7 @@ def collect_bins(process: BinningProcess, variables: list[str], model_label: str
     for var in variables:
         table = process.get_binned_variable(var).binning_table.build()
         table = table[table["Bin"].astype(str).str.strip() != "Totals"].copy()
+        table["Bin"] = table["Bin"].apply(clean_bin_label)
         table.insert(0, "variable", var)
         table.insert(0, "model", model_label)
         frames.append(table[["model", "variable", "Bin", "Count", "Count (%)", "Non-event", "Event",

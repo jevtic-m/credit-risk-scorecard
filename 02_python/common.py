@@ -136,6 +136,20 @@ def connect(read_only: bool = False) -> duckdb.DuckDBPyConnection:
     return con
 
 
+def clean_bin_label(bin_value) -> str:
+    """Macht aus einem optbinning-Bin ein lesbares Label.
+
+    Zahlenbins kommen als Text ("[662.50, 672.50)"), Kategorienbins als Array
+    (['OWN'] oder ['OTHER', 'RENT']). Arrays werden zu "OWN" bzw. "OTHER, RENT".
+    """
+    if isinstance(bin_value, str):
+        return bin_value
+    try:
+        return ", ".join(str(v) for v in list(bin_value))
+    except TypeError:
+        return str(bin_value)
+
+
 def split_sql_statements(sql_text: str) -> list[str]:
     """Entfernt Kommentarzeilen und trennt den Text an Semikolons in einzelne Abfragen."""
     code_lines = [

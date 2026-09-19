@@ -110,3 +110,24 @@ zufälliger Split hätte Kredite aus demselben Monat in beide Teile gelegt, und 
 profitiert, dass sich Konjunktur und Vergabepolitik in Train und Test gleichen. Der zeitbasierte Test ist
 härter: Die Ausfallquote im Test liegt mit 22,4 % über den 18,5 % im Training, und genau diese
 Verschiebung muss ein Modell in der Praxis aushalten.
+
+---
+
+## Nach AP4 (Scorecard)
+
+**Wie kommt man von einer PD zu einem Score-Punkt?**
+
+Über die Odds. Aus der PD werden die Odds gut zu schlecht: (1 - PD) / PD. Der Score ist eine lineare
+Funktion vom Logarithmus dieser Odds: Score = Offset + Factor x ln(Odds), mit Factor = PDO / ln(2) =
+28,85 und Offset = 600 - 28,85 x ln(50) = 487,12. Beispiel aus meinem Test: PD 9,4 %, Odds 9,68, Score
+487,12 + 28,85 x 2,27 = 552,6. Weil die logistische Regression die Log-Odds als Summe von Koeffizient
+mal WoE berechnet, lässt sich der Score auf die Variablen verteilen: Jeder Bin bekommt feste Punkte,
+und der Score ist ihre Summe. Beim selben Kredit gibt die Scorecard 552 Punkte.
+
+**Dein AUC liegt bei 0,69 (Test) – ist das gut?**
+
+Für Lending Club ohne die eigene Einstufung ja, das ist der typische Bereich von 0,68 bis 0,72. Wichtiger
+als die Zahl ist, wie sie zustande kam: zeitlich getrennt getestet (2016 bis 2018 nach Training bis 2015),
+ohne Leckage-Spalten, ohne grade und int_rate. Das Benchmark-Modell mit Lending Clubs grade und int_rate
+kommt auf 0,705, also nur 0,017 mehr. Ein AUC von 0,90 wäre bei diesen Daten kein Erfolg, sondern ein
+sicheres Zeichen, dass Information aus der Zukunft ins Modell gerutscht ist.

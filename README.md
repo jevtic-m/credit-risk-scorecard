@@ -43,7 +43,9 @@ Ausgeschlossen: 38 Spalten, die erst nach der Kreditvergabe entstehen (Zahlungen
 
 **AP3 – Split und Binning:** Zeitbasierter Split bei Januar 2016: Training 829.355 Kredite (2007–2015, Ausfallquote 18,46 %), Test 518.744 Kredite (2016–2018, Ausfallquote 22,42 %). WoE-Binning mit optbinning auf 32 Kandidaten ohne grade/int_rate. Stärkste Variablen nach Information Value: term_months (0,238), loan_to_income (0,126), fico_range_low (0,122), acc_open_past_24mths (0,082), dti (0,075). 17 Variablen mit IV ≥ 0,02 gehen ins Modell. Keine Variable des Hauptmodells liegt über 0,5, es gibt also kein Leckage-Signal. Zum Vergleich: Lending Clubs eigene Merkmale sub_grade (0,498), grade (0,469) und int_rate (0,466) sind jeweils doppelt so stark wie die beste eigene Variable.
 
-[Weitere Ergebnisse folgen mit AP4 bis AP8.]
+**AP4 – Scorecard:** Logistische Regression auf WoE-Werten, skaliert mit PDO 20 und 600 Punkten bei Odds 50:1. Zwei Variablen (loan_amnt, revol_util) bekamen wegen Überschneidung mit loan_to_income ein positives Vorzeichen und wurden entfernt; das Hauptmodell A hat 15 Variablen, alle mit plausiblem Vorzeichen. Scores liegen zwischen 453 und 619 Punkten. Erste Güte: AUC 0,706 im Training und 0,688 im zeitlich getrennten Test. Das Benchmark-Modell B mit Lending Clubs grade, sub_grade und int_rate erreicht 0,705 im Test, also nur 0,017 mehr. Die Scorecard-Tabelle steht in `reports/scorecard_table_a.csv`.
+
+[Weitere Ergebnisse folgen mit AP5 bis AP8.]
 
 ## Annahmen und Limitationen
 
@@ -84,4 +86,9 @@ Voraussetzung: Python 3.11 oder neuer, Git, ca. 5 GB freier Plattenplatz.
    .venv/Scripts/python.exe 02_python/02_woe_binning.py
    ```
 
-[Weitere Schritte folgen mit AP4 bis AP8.]
+6. AP4 – Scorecard bauen (schreibt `reports/scorecard_table_a.csv`, `_b.csv` und `data/processed/scored_loans.parquet`):
+   ```bash
+   .venv/Scripts/python.exe 02_python/03_scorecard.py
+   ```
+
+[Weitere Schritte folgen mit AP5 bis AP8.]

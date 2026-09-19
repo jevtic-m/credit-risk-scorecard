@@ -66,3 +66,19 @@ Ergebnisdateien im Repo:
 Ergebnisdateien nicht im Repo (`.gitignore`):
 - `data/processed/split.parquet`: id und sample (train/test)
 - `data/processed/binning_process_a.pkl`: gefitteter Binning-Prozess Modell A
+
+## AP4: Scorecard bauen
+
+Ausfuehren: `.venv/Scripts/python.exe 02_python/03_scorecard.py` (ca. 70 Sekunden)
+
+| Reihenfolge | Datei | Was passiert |
+|---|---|---|
+| 1 | `02_python/03_scorecard.py` | Liest die Variablenauswahl aus `reports/iv_table.csv`, baut mit optbinning eine Scorecard (Binning, logistische Regression, PDO-Skalierung 20 / 600 / 50:1). Vorzeichen-Regel: Variablen mit positivem Koeffizienten werden nacheinander entfernt und das Modell neu gefittet. Modell B (Benchmark) bekommt zusaetzlich grade, sub_grade, int_rate und installment. Schreibt Scorecard-Tabellen, Score und PD fuer alle Kredite und ein Rechenbeispiel PD zu Score. |
+
+Ergebnisdateien im Repo:
+- `reports/scorecard_table_a.csv`: Hauptmodell, je Bin: Anteil, Ausfallquote, WoE, Koeffizient, Punkte
+- `reports/scorecard_table_b.csv`: dasselbe fuer das Benchmark-Modell
+
+Ergebnisdateien nicht im Repo (`.gitignore`):
+- `data/processed/scored_loans.parquet`: alle 1.348.099 Kredite mit sample, Score und PD beider Modelle plus Auswertungsspalten (Grundlage fuer AP5 bis AP8)
+- `data/processed/scorecard_a.pkl`, `scorecard_b.pkl`: die gefitteten Modelle

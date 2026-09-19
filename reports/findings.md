@@ -347,3 +347,87 @@ FICO über 660, das Portfolio ist also bereits vorselektiert, und die Verzugsmer
 Erfüllt. Die IV-Tabelle liegt in `reports/iv_table.csv`, die fünf stärksten Variablen sind oben
 fachlich erklärt, alle drei Prüfungen (zeitbasierter Split, kein IV über 0,5, optbinning fehlerfrei)
 sind positiv.
+
+---
+
+## AP4: Scorecard bauen
+
+### Was wurde gemacht
+
+1. Die 17 Variablen mit IV >= 0,02 aus AP3 gehen in eine optbinning-Scorecard: Binning (gleiche
+   Parameter wie AP3), logistische Regression auf den WoE-Werten, PDO-Skalierung.
+2. Skalierung: PDO = 20, 600 Punkte bei Odds 50:1 (gut zu schlecht). Factor = 20 / ln(2) = 28,85,
+   Offset = 600 - 28,85 x ln(50) = 487,12. Punkte je Bin auf ganze Zahlen gerundet.
+3. Vorzeichen-Regel: Jeder Koeffizient muss negativ sein (hoher WoE = weniger Ausfälle). Variablen mit
+   positivem Koeffizienten werden nacheinander entfernt und das Modell neu gefittet.
+4. Modell B als Benchmark: dieselben Variablen plus grade, sub_grade, int_rate und installment.
+5. Score und PD für alle 1.348.099 Kredite nach `data/processed/scored_loans.parquet`, Scorecard-Tabellen
+   nach `reports/scorecard_table_a.csv` und `_b.csv`.
+
+### Was kam heraus
+
+**Vorzeichen-Regel hat zwei Variablen entfernt:** loan_amnt (Koeffizient +0,21) und danach revol_util
+(+0,08). Beide hängen eng mit anderen Modellvariablen zusammen (loan_amnt steckt in loan_to_income,
+revol_util in bc_util). Sobald die stärkere Variable im Modell ist, dreht sich ihr Vorzeichen, und die
+Scorecard würde größeren Krediten mehr Punkte geben. Das Hauptmodell A hat danach 15 Variablen, alle
+mit negativem Koeffizienten.
+
+**Scorecard Modell A, Punktespanne je Variable (max minus min über die Bins):**
+
+| Variable | Koeffizient | Punkte min | Punkte max | Spanne |
+|---|---|---|---|---|
+| fico_range_low | -0,693 | 28 | 57 | 29 |
+| term_months | -0,923 | 16 (60 Monate) | 44 (36 Monate) | 28 |
+| acc_open_past_24mths | -0,833 | 22 | 46 | 24 |
+| loan_to_income | -0,496 | 27 | 44 | 17 |
+| dti | -0,480 | 28 | 41 | 13 |
+| total_rev_hi_lim | -0,448 | 33 | 42 | 9 |
+| inq_last_6mths | -0,541 | 30 | 38 | 8 |
+| bc_util | -0,432 | 31 | 39 | 8 |
+| mo_sin_old_rev_tl_op | -0,430 | 31 | 38 | 7 |
+| mort_acc | -0,472 | 33 | 40 | 7 |
+| mths_since_recent_inq | -0,398 | 32 | 38 | 6 |
+| tot_cur_bal | -0,359 | 34 | 40 | 6 |
+| home_ownership | -0,586 | 33 (RENT) | 38 (MORTGAGE) | 5 |
+| annual_inc | -0,283 | 34 | 38 | 4 |
+| verification_status | -0,263 | 34 | 38 | 4 |
+
+Intercept -1,547. Theoretischer Score-Bereich 446 bis 621 Punkte, tatsächlich 453 bis 619. Mittelwert
+535 im Training, 537 im Test, Standardabweichung 22. Ein Kredit mit 60 Monaten Laufzeit, FICO unter 662
+und 10 neuen Konten in zwei Jahren verliert gegenüber dem besten Kunden allein aus diesen drei Variablen
+81 Punkte, also 4 Verdopplungen der Ausfall-Odds.
+
+**Erste Güte (vollständig in AP5):**
+
+| Modell | AUC Train | AUC Test (2016 bis 2018) |
+|---|---|---|
+| A (Hauptmodell, 15 Variablen) | 0,706 | 0,688 |
+| B (Benchmark mit grade, sub_grade, int_rate, installment) | 0,719 | 0,705 |
+
+Der Test-AUC von 0,688 liegt im erwarteten Bereich von 0,68 bis 0,72 für Lending Club ohne grade. Der
+Abstand zwischen Train und Test (0,018) ist die übliche Verschlechterung bei zeitlicher Trennung.
+Bemerkenswert: Lending Clubs eigene Einstufung bringt im Benchmark nur 0,017 AUC mehr. Die eigenen
+15 Antragsvariablen enthalten also den größten Teil der Information, die auch in grade steckt.
+
+**Rechenbeispiel (Kredit 134492425 aus dem Test):** PD 0,0936, Odds gut zu schlecht 9,68.
+Score = 487,12 + 28,85 x ln(9,68) = 552,6. Summe der gerundeten Bin-Punkte in der Scorecard: 552.
+
+### Warum so entschieden
+
+- **PDO 20, 600 Punkte bei Odds 50:1.** Lehrbuch-Parametrierung (Siddiqi, Credit Risk Scorecards). Sie ändert
+  nichts an der Rangfolge, nur an der Skala. Alle 20 Punkte verdoppeln sich die Odds auf Rückzahlung.
+- **Vorzeichen-Regel statt Behalten.** Eine Scorecard mit positivem Koeffizienten gibt Punkte in die
+  falsche Richtung und wäre einem Kunden nicht erklärbar. Der AUC ändert sich durch das Entfernen
+  praktisch nicht (0,6880 vor, 0,6884 nach), die Erklärbarkeit gewinnt.
+- **Logistische Regression ohne Klassengewichte, Standard-Regularisierung.** Mit 15 WoE-Variablen und
+  830.000 Zeilen gibt es keine Überanpassung. Ohne Gewichte bleiben die PDs im Mittel auf dem Niveau
+  der echten Ausfallquote, was für Kalibrierung und EL-Rechnung entscheidend ist.
+- **Punkte gerundet.** Echte Scorecards arbeiten mit ganzen Punkten. Der Rundungsfehler ist im
+  Beispiel 0,6 Punkte.
+- **installment nur im Benchmark.** Die Rate ist aus Betrag, Laufzeit und Zinssatz berechnet und trägt
+  über den Zinssatz Lending Clubs Einstufung in sich.
+
+### Abnahmekriterium AP4
+
+Erfüllt. Die Scorecard-Tabelle mit Punkten je Bin liegt in `reports/scorecard_table_a.csv`, die
+Umrechnung PD zu Score ist oben mit Formel und Beispiel erklärt, Modell B liegt als Benchmark vor.
